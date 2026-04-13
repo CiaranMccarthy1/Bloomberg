@@ -1,0 +1,30 @@
+<ion-content [fullscreen]="true">
+  <div class="panel">
+    <div class="title">DEVICE PROFILE</div>
+
+    <div class="row">
+      <span class="k">PLATFORM</span>
+      <span class="v">{{ platform }}</span>
+    </div>
+    <div class="row">
+      <span class="k">OS</span>
+      <span class="v">{{ operatingSystem }}</span>
+    </div>
+    <div class="row">
+      <span class="k">MODEL</span>
+      <span class="v">{{ model }}</span>
+    </div>
+
+    <div class="title small">PERSISTED STATE</div>
+    <div class="row">
+      <span class="k">SYMBOL</span>
+      <span class="v">{{ appSymbol }}</span>
+    </div>
+    <div class="row">
+      <span class="k">RANGE</span>
+      <span class="v">{{ appRange }}</span>
+    </div>
+
+    <a class="back" routerLink="/">BACK TO MARKET</a>
+  </div>
+</ion-content>

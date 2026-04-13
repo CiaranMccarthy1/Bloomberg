@@ -74,6 +74,47 @@ ion-content::part(scroll) {
   .res-label { color: #444; font-size: 9px; letter-spacing: 1px; margin-right: 4px; }
 }
 
+.symbolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.symbol-input {
+  background: #050505;
+  border: 1px solid #222;
+  color: #ccc;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  width: 100px;
+  text-transform: uppercase;
+}
+
+.symbol-active {
+  color: #ff9900;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.about-link {
+  margin-left: auto;
+  color: #888;
+  border: 1px solid #222;
+  padding: 3px 8px;
+  text-decoration: none;
+  font-size: 9px;
+  letter-spacing: 1px;
+
+  &:hover {
+    color: #ff9900;
+    border-color: #ff9900;
+  }
+}
+
 .rb {
   background: none;
   border: 1px solid #222;

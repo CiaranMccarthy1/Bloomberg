@@ -27,6 +27,7 @@
 
     <div class="resbar">
       <span class="res-label">RANGE</span>
+      <a class="about-link" routerLink="/">HOME</a>
       <button
         class="rb"
         type="button"
@@ -35,6 +36,14 @@
         (click)="selectRange(r)">
         {{ r.toUpperCase() }}
       </button>
+      <a class="about-link" routerLink="/about">DEVICE</a>
+    </div>
+
+    <div class="symbolbar">
+      <span class="res-label">SYMBOL</span>
+      <input class="symbol-input" type="text" [(ngModel)]="symbolInput" (keyup.enter)="applySymbol()" placeholder="^GSPC">
+      <button class="rb" type="button" (click)="applySymbol()">LOAD</button>
+      <span class="symbol-active">{{ symbol }}</span>
     </div>
 
     <div class="chartbox">

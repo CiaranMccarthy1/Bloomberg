@@ -1,0 +1,83 @@
+<ion-content [fullscreen]="true">
+  <div class="frame" *ngIf="!error">
+    <div class="top-blue">
+      <div class="brand">BLOOMBERG</div>
+      <div class="clock">{{ currentDate }} {{ currentTime }}</div>
+    </div>
+
+    <div class="top-purple">
+      <div class="ticker-track">
+        <div class="ticker-run">
+          <span class="ticker-item" *ngFor="let t of topTicker">{{ t.symbol }} {{ fmt(t.price) }} {{ t.weekPct >= 0 ? '+' : '' }}{{ t.weekPct.toFixed(2) }}%</span>
+        </div>
+        <div class="ticker-run copy">
+          <span class="ticker-item" *ngFor="let t of topTicker">{{ t.symbol }} {{ fmt(t.price) }} {{ t.weekPct >= 0 ? '+' : '' }}{{ t.weekPct.toFixed(2) }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="left-stack">
+        <section class="card red">
+          <h3>PORTFOLIO NOW</h3>
+          <div class="big">${{ fmt(portfolioNow) }}</div>
+          <div class="small">Cash: ${{ fmt(cashBalance) }}</div>
+          <div class="small" [class.up]="totalPnl >= 0" [class.dn]="totalPnl < 0">P/L: {{ totalPnl >= 0 ? '+' : '' }}${{ fmt(totalPnl) }} ({{ totalPnlPct >= 0 ? '+' : '' }}{{ totalPnlPct.toFixed(2) }}%)</div>
+        </section>
+
+        <section class="card yellow">
+          <h3>ACCOUNT HISTORY</h3>
+          <div class="history-row" *ngFor="let p of accountHistory">
+            <span>{{ p.label }}</span>
+            <span>${{ fmt(p.value) }}</span>
+          </div>
+        </section>
+
+        <section class="card grey">
+          <h3>SECTOR ALLOCATION</h3>
+          <div class="sector-row" *ngFor="let s of sectorAllocation">
+            <div class="sector-head">
+              <span>{{ s.sector }}</span>
+              <span>{{ s.pct.toFixed(1) }}%</span>
+            </div>
+            <div class="bar-wrap"><div class="bar-fill" [style.width.%]="s.pct"></div></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card brown">
+        <div class="weekly-half">
+          <h3>TOP WEEKLY PERFORMERS</h3>
+          <div class="weekly-list">
+            <div class="leader-row" *ngFor="let w of weeklyLeaders">
+              <span>{{ w.symbol }}</span>
+              <span>${{ fmt(w.price) }}</span>
+              <span [class.up]="w.weekPct >= 0" [class.dn]="w.weekPct < 0">{{ w.weekPct >= 0 ? '+' : '' }}{{ w.weekPct.toFixed(2) }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="heat-half">
+          <h3>S&P 500 HEAT MAP</h3>
+          <div class="heat-grid">
+            <div class="heat-tile" *ngFor="let t of heatMapTiles" [ngClass]="[t.size, tileTone(t.change)]" (click)="openMarket(t.symbol)" (keyup.enter)="openMarket(t.symbol)" tabindex="0">
+              <div class="sym">{{ t.symbol }}</div>
+              <div class="chg">{{ t.change > 0 ? '+' : '' }}{{ t.change.toFixed(2) }}%</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card pink">
+        <h3>CURRENT NEWS</h3>
+        <div class="news-row" *ngFor="let n of news">
+          <div class="source">{{ n.source }}</div>
+          <div class="headline">{{ n.title }}</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="state" *ngIf="loading">LOADING USER DATA...</div>
+  <div class="state error" *ngIf="error">{{ error }}</div>
+</ion-content>
