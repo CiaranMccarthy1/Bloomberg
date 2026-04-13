@@ -1,0 +1,47 @@
+<ion-content [fullscreen]="true">
+  <div class="terminal">
+    <div class="topbar">
+      <div class="logo">BLOOMBERG</div>
+      <div class="clock">{{ currentDate }} {{ currentTime }}</div>
+    </div>
+
+    <div class="header">
+      <div>
+        <div class="symbol">S&P 500</div>
+        <div class="index-name">INDEX SNAPSHOT</div>
+      </div>
+      <div>
+        <div class="price">{{ price }}</div>
+        <div class="change" [ngClass]="changeClass">{{ change }}</div>
+      </div>
+    </div>
+
+    <div class="statsbar">
+      <div class="stat"><div class="stat-l">OPEN</div><div class="stat-v">{{ statOpen }}</div></div>
+      <div class="stat"><div class="stat-l">HIGH</div><div class="stat-v">{{ statHigh }}</div></div>
+      <div class="stat"><div class="stat-l">LOW</div><div class="stat-v">{{ statLow }}</div></div>
+      <div class="stat"><div class="stat-l">PREV</div><div class="stat-v">{{ statPrev }}</div></div>
+      <div class="stat"><div class="stat-l">52W H</div><div class="stat-v">{{ stat52h }}</div></div>
+      <div class="stat"><div class="stat-l">52W L</div><div class="stat-v">{{ stat52l }}</div></div>
+    </div>
+
+    <div class="resbar">
+      <span class="res-label">RANGE</span>
+      <button
+        class="rb"
+        type="button"
+        *ngFor="let r of ranges"
+        [class.active]="r === activeRange"
+        (click)="selectRange(r)">
+        {{ r.toUpperCase() }}
+      </button>
+    </div>
+
+    <div class="chartbox">
+      <canvas #chartCanvas></canvas>
+      <div class="loading" *ngIf="loading">{{ loadingMsg }}</div>
+    </div>
+
+    <div class="statusbar">DELAYED QUOTE · DATA VIA YAHOO FINANCE</div>
+  </div>
+</ion-content>
