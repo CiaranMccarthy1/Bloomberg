@@ -42,6 +42,8 @@ export class HomePage implements OnInit, OnDestroy {
   currentPriceNum = 0;
 
   simCash = 100000;
+  currency = 'USD';
+  defaultSymbol = '^GSPC';
   tradeQtyInput = 1;
   tradeMessage = '';
   currentPositionQty = 0;
@@ -102,11 +104,14 @@ export class HomePage implements OnInit, OnDestroy {
   async ngOnInit() {
     await this.storage.create();
     const savedRange = await this.storage.get('range');
+    const savedSymbol = await this.storage.get('symbol');
+    this.currency = (await this.storage.get('settings.currency')) ?? 'USD';
+    this.defaultSymbol = ((await this.storage.get('settings.defaultSymbol')) ?? '^GSPC').toString().trim().toUpperCase() || '^GSPC';
     const routeSymbol = this.route.snapshot.queryParamMap.get('symbol');
     if (routeSymbol?.trim()) {
       this.symbol = routeSymbol.trim().toUpperCase();
     } else {
-      this.symbol = '^GSPC';
+      this.symbol = (savedSymbol ?? this.defaultSymbol).toString().trim().toUpperCase() || '^GSPC';
     }
     this.symbolInput = this.symbol;
     await this.storage.set('symbol', this.symbol);
@@ -312,9 +317,28 @@ export class HomePage implements OnInit, OnDestroy {
     this.router.navigate(['/market'], { queryParams: { symbol: this.symbol } });
   }
 
+  goSettings(): void {
+    this.navExpanded = false;
+    this.router.navigate(['/settings']);
+  }
+
   fmt(n: number | null | undefined): string {
     if (n == null || isNaN(n)) return '—';
     return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  money(n: number | null | undefined): string {
+    if (n == null || isNaN(n)) return '—';
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: this.currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(n);
+    } catch {
+      return `$${this.fmt(n)}`;
+    }
   }
 
   private fetchChartData(range: string, interval: string, symbol: string): Observable<{ meta: any; timestamps: number[]; closes: Array<number | null> }> {

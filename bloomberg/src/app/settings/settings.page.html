@@ -1,0 +1,64 @@
+<ion-content [fullscreen]="true">
+  <div class="settings-shell">
+    <div class="topbar">
+      <div class="top-left">
+        <button class="burger" type="button" (click)="toggleSideTab()">☰</button>
+        <div class="logo">BLOOMBERG</div>
+      </div>
+      <div class="clock">{{ currentDate }} {{ currentTime }}</div>
+    </div>
+
+    <div class="blur-overlay" *ngIf="navExpanded" (click)="toggleSideTab()"></div>
+
+    <nav class="side-drawer" [class.open]="navExpanded">
+      <button class="tab-link" type="button" (click)="goHome()">HOME</button>
+      <button class="tab-link" type="button" (click)="goTrading()">TRADING</button>
+      <button class="tab-link" type="button" (click)="goSettings()">SETTINGS</button>
+    </nav>
+
+    <div class="content">
+      <h2>SETTINGS</h2>
+
+      <div class="grid">
+        <label>USER NAME
+          <input type="text" [(ngModel)]="userName" placeholder="Your name">
+        </label>
+
+        <label>DEFAULT SYMBOL
+          <input type="text" [(ngModel)]="defaultSymbol" placeholder="^GSPC">
+        </label>
+
+        <label>CURRENCY
+          <select [(ngModel)]="currency">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+          </select>
+        </label>
+
+        <label>THEME
+          <select [(ngModel)]="theme">
+            <option value="sleek-dark">Sleek Dark</option>
+            <option value="high-contrast">High Contrast</option>
+          </select>
+        </label>
+
+        <label>FONT SIZE
+          <select [(ngModel)]="fontSize">
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn" (click)="saveSettings()">SAVE SETTINGS</button>
+        <button type="button" class="btn warn" (click)="resetPortfolio()">RESET CASH + CLEAR STOCKS</button>
+        <button type="button" class="btn" (click)="exportProfile()">EXPORT PROFILE JSON</button>
+      </div>
+
+      <div class="status">{{ status }}</div>
+    </div>
+  </div>
+</ion-content>

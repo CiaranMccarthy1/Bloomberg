@@ -1,5 +1,5 @@
 ion-content {
-  --background: #000;
+  --background: var(--app-bg);
   --padding-top: 0;
   --padding-bottom: 0;
   --padding-start: 0;
@@ -14,10 +14,10 @@ ion-content::part(scroll) {
 
 .terminal {
   position: relative;
-  background: #000;
-  color: #ccc;
+  background: var(--app-bg);
+  color: var(--app-text);
   font-family: 'Courier New', Courier, monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-multiplier));
   width: 100%;
   min-height: 100%;
   border: 1px solid #1a1a1a;

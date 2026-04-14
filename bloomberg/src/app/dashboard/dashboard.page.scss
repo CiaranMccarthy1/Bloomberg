@@ -1,5 +1,5 @@
 ion-content {
-  --background: #06080b;
+  --background: var(--app-bg);
   --padding-top: 0;
   --padding-bottom: 0;
   --padding-start: 0;
@@ -12,10 +12,10 @@ ion-content {
   min-height: 100vh;
   margin: 0;
   border: 1px solid #1b222c;
-  background: #05070a;
-  color: #d9dde3;
+  background: var(--app-bg);
+  color: var(--app-text);
   font-family: 'Courier New', Courier, monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-multiplier));
 }
 
 .top-blue {

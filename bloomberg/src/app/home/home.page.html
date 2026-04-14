@@ -13,6 +13,7 @@
     <nav class="side-drawer" [class.open]="navExpanded">
       <button class="tab-link" type="button" (click)="goHome()">HOME</button>
       <button class="tab-link" type="button" (click)="goTrading()">TRADING</button>
+      <button class="tab-link" type="button" (click)="goSettings()">SETTINGS</button>
     </nav>
 
     <div class="header">
@@ -66,11 +67,11 @@
 
     <div class="tradebar">
       <div class="trade-metrics">
-        <span>CASH ${{ fmt(simCash) }}</span>
+        <span>CASH {{ money(simCash) }}</span>
         <span>POS {{ currentPositionQty }}</span>
-        <span>AVG ${{ fmt(currentPositionAvg) }}</span>
-        <span>VALUE ${{ fmt(currentPositionValue) }}</span>
-        <span [class.up]="currentPositionUnrealized >= 0" [class.dn]="currentPositionUnrealized < 0">U/P&L ${{ fmt(currentPositionUnrealized) }}</span>
+          <span>AVG {{ money(currentPositionAvg) }}</span>
+          <span>VALUE {{ money(currentPositionValue) }}</span>
+          <span [class.up]="currentPositionUnrealized >= 0" [class.dn]="currentPositionUnrealized < 0">U/P&L {{ money(currentPositionUnrealized) }}</span>
       </div>
       <div class="trade-actions">
         <input class="qty-input" type="number" min="1" [(ngModel)]="tradeQtyInput" placeholder="QTY">

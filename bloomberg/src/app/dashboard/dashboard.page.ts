@@ -1,9 +1,10 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { NavigationEnd, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { Subscription, catchError, filter, forkJoin, map, of, switchMap } from 'rxjs';
+import { Storage } from '@ionic/storage-angular';
 import { environment } from '../../environments/environment';
 
 type BoughtStock = { symbol: string; quantity: number; avgBuyPrice: number };
@@ -30,6 +31,8 @@ export class DashboardPage implements OnInit, OnDestroy {
   navExpanded = false;
 
   userName = '';
+  currency = 'USD';
+  defaultSymbol = '^GSPC';
   cashBalance = 0;
   holdings: StockView[] = [];
   totalCost = 0;
@@ -59,9 +62,14 @@ export class DashboardPage implements OnInit, OnDestroy {
     JNJ: 'Healthcare'
   };
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router, @Inject(Storage) private storage: Storage) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    await this.storage.create();
+    this.userName = ((await this.storage.get('settings.userName')) ?? '').toString();
+    this.currency = ((await this.storage.get('settings.currency')) ?? 'USD').toString();
+    this.defaultSymbol = (((await this.storage.get('settings.defaultSymbol')) ?? '^GSPC').toString().trim().toUpperCase()) || '^GSPC';
+
     this.tickClock();
     this.clockId = setInterval(() => this.tickClock(), 1000);
     this.refreshDashboardData();
@@ -140,7 +148,7 @@ export class DashboardPage implements OnInit, OnDestroy {
       })
     ).subscribe({
       next: data => {
-        this.userName = data.userData.user;
+        if (!this.userName) this.userName = data.userData.user;
         this.cashBalance = data.userData.balance;
         this.holdings = data.views;
         this.totalCost = data.totalCost;
@@ -286,6 +294,15 @@ export class DashboardPage implements OnInit, OnDestroy {
     return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  money(n: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: this.currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(n);
+  }
+
   openMarket(symbol: string): void {
     this.router.navigate(['/market'], { queryParams: { symbol } });
   }
@@ -296,7 +313,12 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   goTrading(): void {
     this.navExpanded = false;
-    this.router.navigate(['/market']);
+    this.router.navigate(['/market'], { queryParams: { symbol: this.defaultSymbol } });
+  }
+
+  goSettings(): void {
+    this.navExpanded = false;
+    this.router.navigate(['/settings']);
   }
 
   goHome(): void {

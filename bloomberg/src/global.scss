@@ -10,3 +10,26 @@
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
+
+:root {
+	--app-bg: #05070a;
+	--app-text: #d9dde3;
+	--app-font-multiplier: 1;
+}
+
+body[data-theme='high-contrast'] {
+	--app-bg: #000000;
+	--app-text: #ffffff;
+}
+
+body[data-font-size='small'] {
+	--app-font-multiplier: 0.9;
+}
+
+body[data-font-size='medium'] {
+	--app-font-multiplier: 1;
+}
+
+body[data-font-size='large'] {
+	--app-font-multiplier: 1.12;
+}

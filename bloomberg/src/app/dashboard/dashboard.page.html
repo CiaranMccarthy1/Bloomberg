@@ -13,6 +13,7 @@
     <nav class="side-drawer" [class.open]="navExpanded">
       <button class="tab-link" type="button" (click)="goHome()">HOME</button>
       <button class="tab-link" type="button" (click)="goTrading()">TRADING</button>
+      <button class="tab-link" type="button" (click)="goSettings()">SETTINGS</button>
     </nav>
 
     <div class="top-purple">
@@ -30,16 +31,17 @@
       <div class="left-stack">
         <section class="card red">
           <h3>PORTFOLIO NOW</h3>
-          <div class="big">${{ fmt(portfolioNow) }}</div>
-          <div class="small">Cash: ${{ fmt(cashBalance) }}</div>
-          <div class="small" [class.up]="totalPnl >= 0" [class.dn]="totalPnl < 0">P/L: {{ totalPnl >= 0 ? '+' : '' }}${{ fmt(totalPnl) }} ({{ totalPnlPct >= 0 ? '+' : '' }}{{ totalPnlPct.toFixed(2) }}%)</div>
+          <div class="small">User: {{ userName || 'INVESTOR' }}</div>
+          <div class="big">{{ money(portfolioNow) }}</div>
+          <div class="small">Cash: {{ money(cashBalance) }}</div>
+          <div class="small" [class.up]="totalPnl >= 0" [class.dn]="totalPnl < 0">P/L: {{ totalPnl >= 0 ? '+' : '' }}{{ money(totalPnl) }} ({{ totalPnlPct >= 0 ? '+' : '' }}{{ totalPnlPct.toFixed(2) }}%)</div>
         </section>
 
         <section class="card yellow">
           <h3>ACCOUNT HISTORY</h3>
           <div class="history-row" *ngFor="let p of accountHistory">
             <span>{{ p.label }}</span>
-            <span>${{ fmt(p.value) }}</span>
+            <span>{{ money(p.value) }}</span>
           </div>
         </section>
 
@@ -61,7 +63,7 @@
           <div class="weekly-list">
             <div class="leader-row" *ngFor="let w of weeklyLeaders">
               <span>{{ w.symbol }}</span>
-              <span>${{ fmt(w.price) }}</span>
+              <span>{{ money(w.price) }}</span>
               <span [class.up]="w.weekPct >= 0" [class.dn]="w.weekPct < 0">{{ w.weekPct >= 0 ? '+' : '' }}{{ w.weekPct.toFixed(2) }}%</span>
             </div>
           </div>
