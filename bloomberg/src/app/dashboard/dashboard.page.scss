@@ -7,6 +7,7 @@ ion-content {
 }
 
 .frame {
+  position: relative;
   width: 100%;
   min-height: 100vh;
   margin: 0;
@@ -14,9 +15,12 @@ ion-content {
   background: #05070a;
   color: #d9dde3;
   font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
 }
 
 .top-blue {
+  position: relative;
+  z-index: 12;
   background: #0b1630;
   color: #ff9900;
   min-height: 44px;
@@ -27,16 +31,82 @@ ion-content {
   justify-content: space-between;
 }
 
+.top-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.burger {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #2f3a47;
+  background: #121922;
+  color: #ff9f1a;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .brand {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   letter-spacing: 2px;
 }
 
 .clock {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: #c7cfda;
+}
+
+.blur-overlay {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 8;
+  background: rgba(5, 7, 10, 0.25);
+  backdrop-filter: blur(5px);
+}
+
+.side-drawer {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  bottom: 0;
+  z-index: 11;
+  width: 210px;
+  background: #0f151d;
+  border-right: 1px solid #2f3a47;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+}
+
+.side-drawer.open {
+  transform: translateX(0);
+}
+
+.tab-link {
+  border: 1px solid #2f3a47;
+  background: #121922;
+  color: #d9dde3;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 7px 8px;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    border-color: #ff9f1a;
+    color: #ff9f1a;
+  }
 }
 
 .top-purple {
@@ -66,7 +136,7 @@ ion-content {
 .ticker-item {
   color: #f5b3ff;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 9px;
   margin-right: 28px;
 }
 
@@ -96,7 +166,7 @@ ion-content {
 
   h3 {
     margin: 0 0 8px;
-    font-size: 14px;
+    font-size: 11px;
     letter-spacing: 0.3px;
     color: #ff9f1a;
   }
@@ -132,13 +202,13 @@ ion-content {
 }
 
 .big {
-  font-size: 29px;
+  font-size: 26px;
   font-weight: 800;
   margin-bottom: 4px;
 }
 
 .small {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: #c9d1db;
 }
@@ -148,9 +218,13 @@ ion-content {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
-  font-size: 13px;
+  font-size: 11px;
   padding: 4px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.history-row {
+  grid-template-columns: 1fr 1fr;
 }
 
 .weekly-half,
@@ -209,13 +283,13 @@ ion-content {
 }
 
 .heat-tile .sym {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   line-height: 1;
 }
 
 .heat-tile .chg {
-  font-size: 9px;
+  font-size: 8px;
   line-height: 1;
   margin-top: 2px;
 }
@@ -241,10 +315,6 @@ ion-content {
 .mid-green { background: #267f46; color: #fff; }
 .deep-green { background: #18a45a; color: #fff; }
 
-.history-row {
-  grid-template-columns: 1fr 1fr;
-}
-
 .sector-row {
   margin-bottom: 8px;
 }
@@ -252,7 +322,7 @@ ion-content {
 .sector-head {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 10px;
   margin-bottom: 3px;
 }
 
@@ -272,14 +342,14 @@ ion-content {
 }
 
 .source {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   margin-bottom: 3px;
   color: #ff9f1a;
 }
 
 .headline {
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1.3;
   color: #d9dde3;
 }
@@ -300,5 +370,9 @@ ion-content {
   .layout {
     grid-template-columns: 1fr;
     min-height: auto;
+  }
+
+  .side-drawer {
+    width: 180px;
   }
 }

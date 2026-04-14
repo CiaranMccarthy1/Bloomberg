@@ -1,9 +1,19 @@
 <ion-content [fullscreen]="true">
   <div class="terminal">
     <div class="topbar">
-      <div class="logo">BLOOMBERG</div>
+      <div class="top-left">
+        <button class="burger" type="button" (click)="toggleSideTab()">☰</button>
+        <div class="logo">BLOOMBERG</div>
+      </div>
       <div class="clock">{{ currentDate }} {{ currentTime }}</div>
     </div>
+
+    <div class="blur-overlay" *ngIf="navExpanded" (click)="toggleSideTab()"></div>
+
+    <nav class="side-drawer" [class.open]="navExpanded">
+      <button class="tab-link" type="button" (click)="goHome()">HOME</button>
+      <button class="tab-link" type="button" (click)="goTrading()">TRADING</button>
+    </nav>
 
     <div class="header">
       <div>
@@ -41,9 +51,33 @@
 
     <div class="symbolbar">
       <span class="res-label">SYMBOL</span>
-      <input class="symbol-input" type="text" [(ngModel)]="symbolInput" (keyup.enter)="applySymbol()" placeholder="^GSPC">
+      <div class="symbol-search">
+        <input class="symbol-input" type="text" [(ngModel)]="symbolInput" (ngModelChange)="onSymbolInputChange($event)" (focus)="onSymbolInputChange(symbolInput)" (blur)="hideSuggestionsSoon()" (keyup.enter)="applySymbol()" placeholder="^GSPC">
+        <div class="suggestions" *ngIf="showSuggestions">
+          <button class="suggestion-item" type="button" *ngFor="let s of suggestions" (mousedown)="chooseSuggestion(s)">
+            <span class="ssym">{{ s.symbol }}</span>
+            <span class="sname">{{ s.name }}</span>
+          </button>
+        </div>
+      </div>
       <button class="rb" type="button" (click)="applySymbol()">LOAD</button>
       <span class="symbol-active">{{ symbol }}</span>
+    </div>
+
+    <div class="tradebar">
+      <div class="trade-metrics">
+        <span>CASH ${{ fmt(simCash) }}</span>
+        <span>POS {{ currentPositionQty }}</span>
+        <span>AVG ${{ fmt(currentPositionAvg) }}</span>
+        <span>VALUE ${{ fmt(currentPositionValue) }}</span>
+        <span [class.up]="currentPositionUnrealized >= 0" [class.dn]="currentPositionUnrealized < 0">U/P&L ${{ fmt(currentPositionUnrealized) }}</span>
+      </div>
+      <div class="trade-actions">
+        <input class="qty-input" type="number" min="1" [(ngModel)]="tradeQtyInput" placeholder="QTY">
+        <button class="rb buy" type="button" (click)="buyAtMarket()">BUY</button>
+        <button class="rb sell" type="button" (click)="sellAtMarket()">SELL</button>
+      </div>
+      <div class="trade-msg">{{ tradeMessage }}</div>
     </div>
 
     <div class="chartbox">

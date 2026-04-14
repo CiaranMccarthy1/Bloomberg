@@ -1,9 +1,19 @@
 <ion-content [fullscreen]="true">
   <div class="frame" *ngIf="!error">
     <div class="top-blue">
-      <div class="brand">BLOOMBERG</div>
+      <div class="top-left">
+        <button class="burger" type="button" (click)="toggleSideTab()">☰</button>
+        <div class="brand">BLOOMBERG</div>
+      </div>
       <div class="clock">{{ currentDate }} {{ currentTime }}</div>
     </div>
+
+    <div class="blur-overlay" *ngIf="navExpanded" (click)="toggleSideTab()"></div>
+
+    <nav class="side-drawer" [class.open]="navExpanded">
+      <button class="tab-link" type="button" (click)="goHome()">HOME</button>
+      <button class="tab-link" type="button" (click)="goTrading()">TRADING</button>
+    </nav>
 
     <div class="top-purple">
       <div class="ticker-track">

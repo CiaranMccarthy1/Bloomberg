@@ -1,9 +1,9 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
-import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { Subscription, catchError, filter, forkJoin, map, of, switchMap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 type BoughtStock = { symbol: string; quantity: number; avgBuyPrice: number };
@@ -26,6 +26,8 @@ export class DashboardPage implements OnInit, OnDestroy {
   currentTime = '';
   currentDate = '';
   private clockId: any;
+  private navSub?: Subscription;
+  navExpanded = false;
 
   userName = '';
   cashBalance = 0;
@@ -62,12 +64,23 @@ export class DashboardPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.tickClock();
     this.clockId = setInterval(() => this.tickClock(), 1000);
-    this.loadNews();
-    this.loadUserData();
+    this.refreshDashboardData();
+    this.navSub = this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(e => {
+      const ev = e as NavigationEnd;
+      if (ev.urlAfterRedirects === '/') {
+        this.refreshDashboardData();
+      }
+    });
   }
 
   ngOnDestroy(): void {
     clearInterval(this.clockId);
+    this.navSub?.unsubscribe();
+  }
+
+  private refreshDashboardData(): void {
+    this.loadNews();
+    this.loadUserData();
   }
 
   get portfolioNow(): number {
@@ -275,6 +288,24 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   openMarket(symbol: string): void {
     this.router.navigate(['/market'], { queryParams: { symbol } });
+  }
+
+  toggleSideTab(): void {
+    this.navExpanded = !this.navExpanded;
+  }
+
+  goTrading(): void {
+    this.navExpanded = false;
+    this.router.navigate(['/market']);
+  }
+
+  goHome(): void {
+    this.navExpanded = false;
+    if (this.router.url === '/') {
+      this.refreshDashboardData();
+      return;
+    }
+    this.router.navigate(['/']);
   }
 
   tileTone(change: number): string {

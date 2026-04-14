@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ElementRef, ViewChild, NgZone, Inject } f
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { Chart, registerables, TooltipItem } from 'chart.js';
 import { Observable, Subscription, map, take } from 'rxjs';
@@ -10,6 +10,10 @@ import { Storage } from '@ionic/storage-angular';
 import { environment } from '../../environments/environment';
 
 Chart.register(...registerables);
+
+type TickerOption = { symbol: string; name: string };
+type SimPosition = { qty: number; avgCost: number };
+type SimTrade = { side: 'BUY' | 'SELL'; symbol: string; qty: number; price: number; total: number; at: string };
 
 @Component({
   selector: 'app-home',
@@ -34,9 +38,50 @@ export class HomePage implements OnInit, OnDestroy {
   stat52l = '—';
   loading = true;
   loadingMsg = 'LOADING MARKET DATA...';
+  navExpanded = false;
+  currentPriceNum = 0;
+
+  simCash = 100000;
+  tradeQtyInput = 1;
+  tradeMessage = '';
+  currentPositionQty = 0;
+  currentPositionAvg = 0;
+  currentPositionValue = 0;
+  currentPositionUnrealized = 0;
+  recentTrades: SimTrade[] = [];
 
   symbol = '^GSPC';
   symbolInput = '^GSPC';
+  suggestions: TickerOption[] = [];
+  showSuggestions = false;
+  private readonly tickerOptions: TickerOption[] = [
+    { symbol: '^GSPC', name: 'S&P 500 Index' },
+    { symbol: '^DJI', name: 'Dow Jones Industrial Average' },
+    { symbol: '^IXIC', name: 'NASDAQ Composite' },
+    { symbol: 'AAPL', name: 'Apple' },
+    { symbol: 'MSFT', name: 'Microsoft' },
+    { symbol: 'NVDA', name: 'NVIDIA' },
+    { symbol: 'AMZN', name: 'Amazon' },
+    { symbol: 'GOOGL', name: 'Alphabet Class A' },
+    { symbol: 'META', name: 'Meta Platforms' },
+    { symbol: 'TSLA', name: 'Tesla' },
+    { symbol: 'JPM', name: 'JPMorgan Chase' },
+    { symbol: 'V', name: 'Visa' },
+    { symbol: 'MA', name: 'Mastercard' },
+    { symbol: 'JNJ', name: 'Johnson & Johnson' },
+    { symbol: 'XOM', name: 'Exxon Mobil' },
+    { symbol: 'CVX', name: 'Chevron' },
+    { symbol: 'WMT', name: 'Walmart' },
+    { symbol: 'PG', name: 'Procter & Gamble' },
+    { symbol: 'HD', name: 'Home Depot' },
+    { symbol: 'KO', name: 'Coca-Cola' },
+    { symbol: 'BAC', name: 'Bank of America' },
+    { symbol: 'PFE', name: 'Pfizer' },
+    { symbol: 'UNH', name: 'UnitedHealth Group' },
+    { symbol: 'ORCL', name: 'Oracle' },
+    { symbol: 'NFLX', name: 'Netflix' },
+    { symbol: 'DIS', name: 'Walt Disney' }
+  ];
   ranges = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '5y'];
   activeRange = '5d';
 
@@ -50,23 +95,22 @@ export class HomePage implements OnInit, OnDestroy {
   private readonly minRequestGapMs = 8000;
   private readonly shortCacheMs = 120000;
   private readonly longCacheMs = 600000;
+  private simPositions: Record<string, SimPosition> = {};
 
-  constructor(private http: HttpClient, private zone: NgZone, @Inject(Storage) private storage: Storage, private route: ActivatedRoute) {}
+  constructor(private http: HttpClient, private zone: NgZone, @Inject(Storage) private storage: Storage, private route: ActivatedRoute, private router: Router) {}
 
   async ngOnInit() {
     await this.storage.create();
-    const savedSymbol = await this.storage.get('symbol');
     const savedRange = await this.storage.get('range');
-    if (typeof savedSymbol === 'string' && savedSymbol.trim()) {
-      this.symbol = savedSymbol.trim().toUpperCase();
-      this.symbolInput = this.symbol;
-    }
     const routeSymbol = this.route.snapshot.queryParamMap.get('symbol');
     if (routeSymbol?.trim()) {
       this.symbol = routeSymbol.trim().toUpperCase();
-      this.symbolInput = this.symbol;
-      await this.storage.set('symbol', this.symbol);
+    } else {
+      this.symbol = '^GSPC';
     }
+    this.symbolInput = this.symbol;
+    await this.storage.set('symbol', this.symbol);
+    await this.loadSimState();
     if (typeof savedRange === 'string' && this.ranges.includes(savedRange)) {
       this.activeRange = savedRange;
     }
@@ -101,7 +145,171 @@ export class HomePage implements OnInit, OnDestroy {
     if (!nextSymbol) return;
     this.symbol = nextSymbol;
     await this.storage.set('symbol', this.symbol);
+    this.refreshSimMetrics();
+    this.showSuggestions = false;
     this.loadChart(this.activeRange);
+  }
+
+  private async loadSimState(): Promise<void> {
+    const savedCash = await this.storage.get('simCash');
+    const savedPositions = await this.storage.get('simPositions');
+    const savedTrades = await this.storage.get('simTrades');
+
+    this.simCash = typeof savedCash === 'number' ? savedCash : 100000;
+    this.simPositions = typeof savedPositions === 'object' && savedPositions ? savedPositions : {};
+    this.recentTrades = Array.isArray(savedTrades) ? savedTrades.slice(0, 20) : [];
+    this.refreshSimMetrics();
+  }
+
+  private async persistSimState(): Promise<void> {
+    await this.storage.set('simCash', this.simCash);
+    await this.storage.set('simPositions', this.simPositions);
+    await this.storage.set('simTrades', this.recentTrades.slice(0, 20));
+  }
+
+  private refreshSimMetrics(): void {
+    const p = this.simPositions[this.symbol] ?? { qty: 0, avgCost: 0 };
+    this.currentPositionQty = p.qty;
+    this.currentPositionAvg = p.avgCost;
+    this.currentPositionValue = p.qty * this.currentPriceNum;
+    this.currentPositionUnrealized = p.qty * (this.currentPriceNum - p.avgCost);
+  }
+
+  async buyAtMarket(): Promise<void> {
+    const qty = Math.floor(Number(this.tradeQtyInput));
+    if (!qty || qty <= 0) {
+      this.tradeMessage = 'Enter a valid quantity';
+      return;
+    }
+    if (this.currentPriceNum <= 0) {
+      this.tradeMessage = 'Price unavailable';
+      return;
+    }
+
+    const total = qty * this.currentPriceNum;
+    if (total > this.simCash) {
+      this.tradeMessage = 'Insufficient cash';
+      return;
+    }
+
+    const existing = this.simPositions[this.symbol] ?? { qty: 0, avgCost: 0 };
+    const nextQty = existing.qty + qty;
+    const nextAvg = ((existing.qty * existing.avgCost) + total) / nextQty;
+
+    this.simPositions[this.symbol] = { qty: nextQty, avgCost: nextAvg };
+    this.simCash -= total;
+    this.recentTrades.unshift({ side: 'BUY', symbol: this.symbol, qty, price: this.currentPriceNum, total, at: new Date().toISOString() });
+    this.tradeMessage = `Bought ${qty} ${this.symbol} @ ${this.fmt(this.currentPriceNum)}`;
+    this.refreshSimMetrics();
+    await this.persistSimState();
+  }
+
+  async sellAtMarket(): Promise<void> {
+    const qty = Math.floor(Number(this.tradeQtyInput));
+    if (!qty || qty <= 0) {
+      this.tradeMessage = 'Enter a valid quantity';
+      return;
+    }
+    if (this.currentPriceNum <= 0) {
+      this.tradeMessage = 'Price unavailable';
+      return;
+    }
+
+    const existing = this.simPositions[this.symbol] ?? { qty: 0, avgCost: 0 };
+    if (existing.qty < qty) {
+      this.tradeMessage = 'Not enough shares to sell';
+      return;
+    }
+
+    const total = qty * this.currentPriceNum;
+    const remaining = existing.qty - qty;
+
+    if (remaining <= 0) {
+      delete this.simPositions[this.symbol];
+    } else {
+      this.simPositions[this.symbol] = { qty: remaining, avgCost: existing.avgCost };
+    }
+
+    this.simCash += total;
+    this.recentTrades.unshift({ side: 'SELL', symbol: this.symbol, qty, price: this.currentPriceNum, total, at: new Date().toISOString() });
+    this.tradeMessage = `Sold ${qty} ${this.symbol} @ ${this.fmt(this.currentPriceNum)}`;
+    this.refreshSimMetrics();
+    await this.persistSimState();
+  }
+
+  onSymbolInputChange(value: string): void {
+    this.symbolInput = value.toUpperCase();
+    this.suggestions = this.getFuzzySuggestions(this.symbolInput);
+    this.showSuggestions = this.suggestions.length > 0 && this.symbolInput.trim().length > 0;
+  }
+
+  chooseSuggestion(item: TickerOption): void {
+    this.symbolInput = item.symbol;
+    this.showSuggestions = false;
+    this.applySymbol();
+  }
+
+  hideSuggestionsSoon(): void {
+    setTimeout(() => {
+      this.showSuggestions = false;
+    }, 120);
+  }
+
+  private getFuzzySuggestions(input: string): TickerOption[] {
+    const q = input.trim().toUpperCase();
+    if (!q) return [];
+
+    const ranked = this.tickerOptions
+      .map(option => ({ option, score: this.fuzzyScore(q, option.symbol, option.name.toUpperCase()) }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map(x => x.option);
+
+    return ranked;
+  }
+
+  private fuzzyScore(query: string, symbol: string, name: string): number {
+    const s = symbol.toUpperCase();
+    if (s === query) return 1000;
+    if (s.startsWith(query)) return 800 - (s.length - query.length);
+    if (name.startsWith(query)) return 700 - (name.length - query.length) * 0.5;
+
+    const subSymbol = this.subsequenceScore(query, s);
+    const subName = this.subsequenceScore(query, name);
+    return Math.max(subSymbol * 10 + 100, subName * 6 + 60, 0);
+  }
+
+  private subsequenceScore(query: string, target: string): number {
+    let qi = 0;
+    let bonus = 0;
+    let lastMatch = -2;
+
+    for (let i = 0; i < target.length && qi < query.length; i++) {
+      if (target[i] === query[qi]) {
+        bonus += 1;
+        if (i === lastMatch + 1) bonus += 2;
+        if (i === 0) bonus += 2;
+        lastMatch = i;
+        qi++;
+      }
+    }
+
+    return qi === query.length ? bonus : 0;
+  }
+
+  toggleSideTab(): void {
+    this.navExpanded = !this.navExpanded;
+  }
+
+  goHome(): void {
+    this.navExpanded = false;
+    this.router.navigate(['/']);
+  }
+
+  goTrading(): void {
+    this.navExpanded = false;
+    this.router.navigate(['/market'], { queryParams: { symbol: this.symbol } });
   }
 
   fmt(n: number | null | undefined): string {
@@ -181,6 +389,7 @@ export class HomePage implements OnInit, OnDestroy {
     const isUp = chgAbs >= 0;
 
     this.zone.run(() => {
+      this.currentPriceNum = cur;
       this.price = this.fmt(cur);
       this.changeClass = isUp ? 'up' : 'dn';
       this.change = `${isUp ? '+' : ''}${this.fmt(chgAbs)} (${isUp ? '+' : ''}${chgPct.toFixed(2)}%)`;
@@ -190,6 +399,7 @@ export class HomePage implements OnInit, OnDestroy {
       this.statPrev = this.fmt(prev);
       this.stat52h = this.fmt(meta.fiftyTwoWeekHigh);
       this.stat52l = this.fmt(meta.fiftyTwoWeekLow);
+      this.refreshSimMetrics();
       this.loading = false;
       this.renderChart(labels, prices, isUp);
     });
