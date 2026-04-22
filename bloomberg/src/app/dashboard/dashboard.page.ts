@@ -28,7 +28,11 @@ export class DashboardPage implements OnInit, OnDestroy {
   currentTime = '';
   currentDate = '';
   private clockId: any;
+  private portfolioRefreshId: any;
+  private newsRefreshId: any;
   private navSub?: Subscription;
+  private readonly portfolioRefreshMs = 10000;
+  private readonly newsRefreshMs = 30000;
   navExpanded = false;
 
   userName = '';
@@ -84,6 +88,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.tickClock();
     this.clockId = setInterval(() => this.tickClock(), 1000);
     await this.refreshDashboardData();
+    this.startRealtimeFeeds();
     this.navSub = this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(e => {
       const ev = e as NavigationEnd;
       if (ev.urlAfterRedirects === '/') {
@@ -94,7 +99,19 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearInterval(this.clockId);
+    this.stopRealtimeFeeds();
     this.navSub?.unsubscribe();
+  }
+
+  private startRealtimeFeeds(): void {
+    this.stopRealtimeFeeds();
+    this.portfolioRefreshId = setInterval(() => this.loadUserData(true), this.portfolioRefreshMs);
+    this.newsRefreshId = setInterval(() => this.loadNews(), this.newsRefreshMs);
+  }
+
+  private stopRealtimeFeeds(): void {
+    clearInterval(this.portfolioRefreshId);
+    clearInterval(this.newsRefreshId);
   }
 
   private async refreshDashboardData(): Promise<void> {
@@ -123,11 +140,17 @@ export class DashboardPage implements OnInit, OnDestroy {
     const now = new Date();
     this.currentTime = now.toLocaleTimeString('en-US', { hour12: false });
     this.currentDate = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+
+    if (!this.loading && !this.error && (this.holdings.length || this.accountHistory.length)) {
+      this.accountHistory = this.buildHistory();
+    }
   }
 
-  private loadUserData(): void {
-    this.loading = true;
-    this.error = '';
+  private loadUserData(isBackgroundRefresh = false): void {
+    if (!isBackgroundRefresh) {
+      this.loading = true;
+      this.error = '';
+    }
 
     this.http.get<UserData>('assets/user-data.json').pipe(
       switchMap(userData => {
@@ -172,6 +195,7 @@ export class DashboardPage implements OnInit, OnDestroy {
       })
     ).subscribe({
       next: data => {
+        this.error = '';
         if (!this.userName) this.userName = data.userData.user;
         this.cashBalance = data.userData.balance;
         this.holdings = data.views;
@@ -182,15 +206,19 @@ export class DashboardPage implements OnInit, OnDestroy {
         this.sectorAllocation = this.buildSectorAllocation();
         this.accountHistory = this.buildHistory();
         this.computeCoachInsights();
-        this.loadMarketPanels();
+        if (!isBackgroundRefresh) {
+          this.loadMarketPanels();
+        }
         this.loading = false;
       },
       error: () => {
-        this.loading = false;
-        this.error = 'Failed to load user data';
-        this.topTicker = this.fallbackMarket();
-        this.weeklyLeaders = this.fallbackMarket();
-        this.computeCoachInsights();
+        if (!isBackgroundRefresh) {
+          this.loading = false;
+          this.error = 'Failed to load user data';
+          this.topTicker = this.fallbackMarket();
+          this.weeklyLeaders = this.fallbackMarket();
+          this.computeCoachInsights();
+        }
       }
     });
   }
@@ -352,9 +380,11 @@ export class DashboardPage implements OnInit, OnDestroy {
     const labels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     const nowValue = this.portfolioNow || this.cashBalance || 100000;
     const drift = this.totalPnl / 8;
+    const phase = Date.now() / 1000;
     return labels.map((label, i) => {
-      const wave = Math.sin(i * 0.8) * 180;
-      const value = nowValue - (6 - i) * drift + wave;
+      const wave = Math.sin(i * 0.8 + phase * 0.35) * 180;
+      const micro = Math.cos(phase * 0.85 + i * 0.45) * 40;
+      const value = nowValue - (6 - i) * drift + wave + micro;
       return { label, value };
     });
   }
