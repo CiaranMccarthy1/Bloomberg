@@ -506,7 +506,8 @@ export class HomePage implements OnInit, OnDestroy {
     if (this.currentPriceNum <= 0) return;
 
     let changed = false;
-    let latestTriggered: PriceAlert | null = null;
+    let latestTriggeredDirection: PriceAlertDirection | null = null;
+    let latestTriggeredTarget: number | null = null;
     this.priceAlerts = this.priceAlerts.map(alert => {
       if (alert.triggeredAt || alert.symbol !== this.symbol) return alert;
 
@@ -517,13 +518,15 @@ export class HomePage implements OnInit, OnDestroy {
       if (!hit) return alert;
 
       changed = true;
-      latestTriggered = { ...alert, triggeredAt: new Date().toISOString() };
-      return latestTriggered;
+      const triggered: PriceAlert = { ...alert, triggeredAt: new Date().toISOString() };
+      latestTriggeredDirection = triggered.direction;
+      latestTriggeredTarget = triggered.target;
+      return triggered;
     });
 
-    if (changed) {
-      const directionLabel = latestTriggered?.direction === 'above' ? 'above' : 'below';
-      this.alertStatus = `Alert triggered: ${this.symbol} moved ${directionLabel} ${this.money(latestTriggered?.target ?? 0)}`;
+    if (changed && latestTriggeredDirection && latestTriggeredTarget != null) {
+      const directionLabel = latestTriggeredDirection === 'above' ? 'above' : 'below';
+      this.alertStatus = `Alert triggered: ${this.symbol} moved ${directionLabel} ${this.money(latestTriggeredTarget)}`;
       this.tradeMessage = this.alertStatus;
       void this.persistAlerts();
     }
