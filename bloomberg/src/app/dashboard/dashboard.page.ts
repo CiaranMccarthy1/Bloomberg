@@ -15,6 +15,7 @@ type SectorSlice = { sector: string; value: number; pct: number };
 type HistoryPoint = { label: string; value: number };
 type HeatTile = { symbol: string; change: number; size: 'lg' | 'md' | 'sm' };
 type NewsItem = { source: string; title: string };
+type RiskProfile = 'conservative' | 'balanced' | 'aggressive';
 
 @Component({
   selector: 'app-dashboard',
@@ -48,6 +49,15 @@ export class DashboardPage implements OnInit, OnDestroy {
   accountHistory: HistoryPoint[] = [];
   heatMapTiles: HeatTile[] = [];
   news: NewsItem[] = [];
+  riskProfile: RiskProfile = 'balanced';
+  targetPortfolio = 125000;
+  goalProgressPct = 0;
+  goalRemaining = 0;
+  concentrationRiskPct = 0;
+  diversificationScore = 0;
+  portfolioHealthScore = 0;
+  topHoldingSymbol = '—';
+  coachMessage = 'Load market data to generate coach insights.';
 
   private readonly sectorMap: Record<string, string> = {
     AAPL: 'Technology',
@@ -69,14 +79,15 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.userName = ((await this.storage.get('settings.userName')) ?? '').toString();
     this.currency = ((await this.storage.get('settings.currency')) ?? 'USD').toString();
     this.defaultSymbol = (((await this.storage.get('settings.defaultSymbol')) ?? '^GSPC').toString().trim().toUpperCase()) || '^GSPC';
+    await this.loadRuntimeSettings();
 
     this.tickClock();
     this.clockId = setInterval(() => this.tickClock(), 1000);
-    this.refreshDashboardData();
+    await this.refreshDashboardData();
     this.navSub = this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(e => {
       const ev = e as NavigationEnd;
       if (ev.urlAfterRedirects === '/') {
-        this.refreshDashboardData();
+        void this.refreshDashboardData();
       }
     });
   }
@@ -86,9 +97,22 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.navSub?.unsubscribe();
   }
 
-  private refreshDashboardData(): void {
+  private async refreshDashboardData(): Promise<void> {
+    await this.loadRuntimeSettings();
     this.loadNews();
     this.loadUserData();
+  }
+
+  private async loadRuntimeSettings(): Promise<void> {
+    const rawRisk = ((await this.storage.get('settings.riskProfile')) ?? 'balanced').toString().trim().toLowerCase();
+    this.riskProfile = rawRisk === 'conservative' || rawRisk === 'aggressive' ? rawRisk : 'balanced';
+
+    const rawGoal = Number(await this.storage.get('settings.targetPortfolio'));
+    if (Number.isFinite(rawGoal) && rawGoal >= 1000 && rawGoal <= 50000000) {
+      this.targetPortfolio = rawGoal;
+    } else {
+      this.targetPortfolio = 125000;
+    }
   }
 
   get portfolioNow(): number {
@@ -157,6 +181,7 @@ export class DashboardPage implements OnInit, OnDestroy {
         this.totalPnlPct = data.totalPnlPct;
         this.sectorAllocation = this.buildSectorAllocation();
         this.accountHistory = this.buildHistory();
+        this.computeCoachInsights();
         this.loadMarketPanels();
         this.loading = false;
       },
@@ -165,8 +190,62 @@ export class DashboardPage implements OnInit, OnDestroy {
         this.error = 'Failed to load user data';
         this.topTicker = this.fallbackMarket();
         this.weeklyLeaders = this.fallbackMarket();
+        this.computeCoachInsights();
       }
     });
+  }
+
+  get goalProgressBarPct(): number {
+    return Math.max(0, Math.min(100, this.goalProgressPct));
+  }
+
+  get riskProfileLabel(): string {
+    return this.riskProfile.toUpperCase();
+  }
+
+  healthClass(): string {
+    if (this.portfolioHealthScore >= 75) return 'good';
+    if (this.portfolioHealthScore >= 50) return 'warn';
+    return 'risk';
+  }
+
+  private computeCoachInsights(): void {
+    const holdingsValue = this.totalValue || 0;
+    const sorted = [...this.holdings].sort((a, b) => b.value - a.value);
+    const topHolding = sorted[0];
+    this.topHoldingSymbol = topHolding?.symbol ?? '—';
+    this.concentrationRiskPct = holdingsValue > 0 && topHolding ? (topHolding.value / holdingsValue) * 100 : 0;
+
+    const sectors = this.sectorAllocation.filter(s => s.value > 0);
+    const topSectorPct = sectors[0]?.pct ?? 100;
+    this.diversificationScore = Math.max(0, Math.min(100, sectors.length * 18 + (100 - topSectorPct) * 0.45));
+
+    this.goalProgressPct = this.targetPortfolio > 0 ? (this.portfolioNow / this.targetPortfolio) * 100 : 0;
+    this.goalRemaining = Math.max(0, this.targetPortfolio - this.portfolioNow);
+
+    const concentrationLimit = this.riskProfile === 'conservative' ? 35 : this.riskProfile === 'balanced' ? 50 : 65;
+    const concentrationPenalty = Math.max(0, this.concentrationRiskPct - concentrationLimit) * 1.3;
+    const pnlBoost = Math.max(-25, Math.min(25, this.totalPnlPct));
+    const diversificationBoost = (this.diversificationScore - 50) * 0.35;
+    const base = 68 + pnlBoost + diversificationBoost - concentrationPenalty;
+    this.portfolioHealthScore = Math.max(0, Math.min(100, base));
+
+    if (this.goalProgressPct >= 100) {
+      this.coachMessage = 'Portfolio goal reached. Consider raising target or locking gains.';
+      return;
+    }
+
+    if (this.concentrationRiskPct > concentrationLimit) {
+      this.coachMessage = `Concentration risk is elevated in ${this.topHoldingSymbol}. Rebalance gradually.`;
+      return;
+    }
+
+    if (this.totalPnlPct < 0) {
+      this.coachMessage = 'Portfolio drawdown detected. Reduce order size and prioritize diversification.';
+      return;
+    }
+
+    this.coachMessage = 'Allocation and momentum are aligned. Keep compounding with disciplined position sizing.';
   }
 
   private loadMarketPanels(): void {
@@ -324,7 +403,7 @@ export class DashboardPage implements OnInit, OnDestroy {
   goHome(): void {
     this.navExpanded = false;
     if (this.router.url === '/') {
-      this.refreshDashboardData();
+      void this.refreshDashboardData();
       return;
     }
     this.router.navigate(['/']);

@@ -17,6 +17,11 @@
 	--app-font-multiplier: 1;
 }
 
+body[data-theme='market-dawn'] {
+	--app-bg: #08111a;
+	--app-text: #e6eef8;
+}
+
 body[data-theme='high-contrast'] {
 	--app-bg: #000000;
 	--app-text: #ffffff;

@@ -45,6 +45,35 @@
           </div>
         </section>
 
+        <section class="card cyan">
+          <h3>PORTFOLIO COACH</h3>
+          <div class="coach-row">
+            <span>RISK PROFILE</span>
+            <span>{{ riskProfileLabel }}</span>
+          </div>
+          <div class="coach-row">
+            <span>HEALTH SCORE</span>
+            <span [ngClass]="healthClass()">{{ portfolioHealthScore.toFixed(1) }} / 100</span>
+          </div>
+          <div class="coach-row">
+            <span>TOP POSITION RISK</span>
+            <span>{{ topHoldingSymbol }} {{ concentrationRiskPct.toFixed(1) }}%</span>
+          </div>
+          <div class="coach-row">
+            <span>DIVERSIFICATION</span>
+            <span>{{ diversificationScore.toFixed(1) }} / 100</span>
+          </div>
+          <div class="coach-row">
+            <span>GOAL TRACK</span>
+            <span>{{ goalProgressPct.toFixed(1) }}%</span>
+          </div>
+          <div class="goal-track">
+            <div class="goal-fill" [style.width.%]="goalProgressBarPct"></div>
+          </div>
+          <div class="small">{{ goalProgressPct >= 100 ? 'Target achieved' : 'Remaining to target: ' + money(goalRemaining) }}</div>
+          <div class="coach-message" [ngClass]="healthClass()">{{ coachMessage }}</div>
+        </section>
+
         <section class="card grey">
           <h3>SECTOR ALLOCATION</h3>
           <div class="sector-row" *ngFor="let s of sectorAllocation">

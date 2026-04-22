@@ -39,6 +39,7 @@
         <label>THEME
           <select [(ngModel)]="theme">
             <option value="sleek-dark">Sleek Dark</option>
+            <option value="market-dawn">Market Dawn</option>
             <option value="high-contrast">High Contrast</option>
           </select>
         </label>
@@ -49,6 +50,26 @@
             <option value="medium">Medium</option>
             <option value="large">Large</option>
           </select>
+        </label>
+
+        <label>RISK PROFILE
+          <select [(ngModel)]="riskProfile">
+            <option value="conservative">Conservative</option>
+            <option value="balanced">Balanced</option>
+            <option value="aggressive">Aggressive</option>
+          </select>
+        </label>
+
+        <label>PORTFOLIO GOAL TARGET
+          <input type="number" min="1000" step="1000" [(ngModel)]="targetPortfolio" placeholder="125000">
+        </label>
+
+        <label>AUTO REFRESH (SECONDS)
+          <input type="number" min="30" max="600" step="5" [(ngModel)]="autoRefreshSec" placeholder="180">
+        </label>
+
+        <label class="wide">WATCHLIST SYMBOLS (CSV)
+          <textarea rows="3" [(ngModel)]="watchlistSeed" placeholder="^GSPC, AAPL, MSFT, NVDA"></textarea>
         </label>
       </div>
 

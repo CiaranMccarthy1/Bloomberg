@@ -1,118 +1,129 @@
-# Bloomberg Market PWA - User Guide
+# Bloomberg Market PWA
 
 ## 1. Project Overview
-This Progressive Web Application provides a Bloomberg-style market dashboard and trading simulator built with Ionic and Angular standalone components.
+This is an Ionic + Angular standalone Progressive Web Application that simulates a Bloomberg-style market terminal for educational trading and portfolio analysis.
 
-The app includes:
-- A real-time style dashboard with portfolio summary, sector allocation, heat map, and market news.
-- A trading screen with symbol search, chart ranges, buy and sell simulation, and position tracking.
-- A settings screen for profile preferences and simulator reset/export.
-- A device screen that displays runtime platform details using Capacitor Device API.
+Core modules:
+- Dashboard for portfolio monitoring, weekly leaders, market heat map, and finance news.
+- Market screen for chart-based symbol analysis and simulated buy/sell execution.
+- Settings for personalization, simulator controls, and analytics configuration.
+- Device screen powered by Capacitor Device API.
 
-## 2. Minimum Requirement Coverage
-This project satisfies the Front-End Web Development 2026 minimum requirements as follows:
+## 2. High-Grade Feature Highlights 
+The following features were specifically implemented to exceed the minimum requirements:
 
-- Angular framework with standalone components:
-  - All pages are standalone components and loaded via Angular router.
-- Application runs with Ionic serve:
-  - Standard Angular/Ionic start command is supported after dependency install.
-- Data binding:
-  - Interpolation is used across all views.
-  - Two-way binding is used in settings and trading controls.
-- Angular Router:
-  - Dedicated routes for dashboard, market, settings, and device screens.
-- Ionic Native/Capacitor plugin:
-  - Capacitor Device plugin is used on the Device page.
-- Read JSON from external URL using Observable and provideHttpClient:
-  - Market and news data are loaded from external APIs using HttpClient observables.
-- Data persistence with Ionic Storage:
-  - App settings and simulated portfolio state are persisted via Ionic Storage.
+1. Portfolio Coach Analytics Engine:
+- Goal tracking against a configurable target portfolio value.
+- Settings-driven risk profile model (`conservative`, `balanced`, `aggressive`).
+- Health score combining P/L trend, diversification, and concentration risk.
+- Real-time coaching message for rebalance/growth decisions.
 
-## 3. Installation and Startup
-Prerequisites:
-- Node.js LTS
-- Ionic CLI 7 or higher
+2. Smart Trading Intelligence:
+- Persistent watchlist with one-click symbol switching.
+- Price alerts (above/below target) with trigger state and alert history.
+- Trend signal metrics (`bullish`, `bearish`, `range-bound`) with confidence and volatility.
+- Recent execution tape for professional trading feedback.
 
-Steps:
-1. Clone the repository.
-2. Open a terminal in the bloomberg project folder.
-3. Run: npm install
-4. Run: ionic serve
-5. Open the local URL shown in terminal output.
+3. Advanced Personalization:
+- New settings for risk profile, portfolio target, watchlist seed list, and market auto-refresh frequency.
+- Theme and font scaling preserved with Ionic Storage.
+- Profile export includes all new analytics settings.
+
+4. UX and Aesthetic Upgrade:
+- Rich gradient-based visual layers, improved panel hierarchy, and responsive card systems.
+- Fast navigation via side drawer and context-aware controls across screens.
+
+## 3. Minimum Requirement Coverage
+This application meets all required baseline criteria:
+
+- Angular framework with standalone components.
+- App runs with Ionic tooling (`ionic serve`).
+- Data binding with interpolation and two-way binding.
+- Angular Router with dedicated screens.
+- Capacitor native integration via Device plugin.
+- External JSON/API consumption via `HttpClient` Observables.
+- Persistent data storage using Ionic Storage.
 
 ## 4. Main Screens
 ### Dashboard
-- Displays user portfolio value, cash, profit and loss, sector allocation, account history, top weekly performers, and market heat map.
-- Ticker and cards are populated from API responses and computed aggregates.
+- Portfolio now summary (cash, P/L, sector allocation, account history).
+- Top weekly performers, heat map tiles, and live market news.
+- Portfolio Coach panel with target progress, health score, concentration, and diversification metrics.
 
-### Trading
-- Supports symbol search and selection.
-- Displays chart and key quote stats across multiple time ranges.
-- Allows simulated buy and sell actions.
-- Updates cash, position quantity, average cost, market value, and unrealized P and L.
+### Market
+- Symbol fuzzy search and quick watchlist switching.
+- Multi-range chart rendering with cached API data and rate-limit protection.
+- Simulated buy/sell orders with persistent positions, cash, and trade history.
+- Price alert management and trend-intelligence calculations.
 
 ### Settings
-- Stores user name, default symbol, currency, theme, and font size.
-- Includes simulator reset and profile export.
+- User profile controls and display preferences.
+- Risk profile and target portfolio configuration.
+- Auto-refresh interval tuning and watchlist seed editing.
+- Simulator reset and profile export.
 
 ### Device
-- Shows platform, operating system, and model from Capacitor Device API.
-- Shows persisted symbol and selected chart range.
+- Platform, OS, and model information from Capacitor Device API.
+- Displays persisted market symbol and active chart range.
 
 ## 5. Data Sources
-- Yahoo Finance chart endpoint through Angular proxy for quote and chart series data.
-- Hacker News Algolia API for market-related headline feed.
-- Local seed data file for initial user profile values.
+- Yahoo Finance chart endpoint (through app proxy) for quote/chart data.
+- Hacker News Algolia API for market-related headlines.
+- Local seed data from `src/assets/user-data.json`.
 
 ## 6. Persistence Model
-Data is stored in Ionic Storage and survives browser refresh/restart:
-- settings.userName
-- settings.defaultSymbol
-- settings.currency
-- settings.theme
-- settings.fontSize
-- symbol
-- range
-- simCash
-- simPositions
-- simTrades
+Stored in Ionic Storage:
+- `settings.userName`
+- `settings.defaultSymbol`
+- `settings.currency`
+- `settings.theme`
+- `settings.fontSize`
+- `settings.riskProfile`
+- `settings.targetPortfolio`
+- `settings.autoRefreshSec`
+- `symbol`
+- `range`
+- `watchlist`
+- `priceAlerts`
+- `simCash`
+- `simPositions`
+- `simTrades`
 
-## 7. Build and Verification
+## 7. Installation and Startup
+Prerequisites:
+- Node.js LTS
+- Ionic CLI 7+
+
+Steps:
+1. Clone the repository.
+2. Open terminal in the project folder.
+3. Run `npm install`.
+4. Run `ionic serve`.
+5. Open the served local URL.
+
+## 8. Build Verification
 To create a production build:
-- Run: npm run build
+- Run `npm run build`
 
-Before submission, verify on another machine:
-1. Fresh clone of repository.
-2. Run npm install.
-3. Run ionic serve.
-4. Confirm all routes load and API data appears.
+Recommended pre-submission check:
+1. Fresh clone.
+2. `npm install`.
+3. `ionic serve`.
+4. Navigate all routes and verify API-backed widgets render.
 
-## 8. Viva Preparation Checklist
-Be ready to explain clearly:
-- Why standalone components were used.
-- How router-driven navigation is structured.
-- Where and why two-way data binding is required.
-- How Observable pipelines process market data.
-- How and why caching/rate limiting logic is implemented.
-- How Ionic Storage is initialized and used.
-- How the Capacitor Device plugin is integrated.
-- Error-handling and fallback strategy when APIs fail.
 
-## 9. Troubleshooting
-If API requests fail:
+
+## 10. Troubleshooting
+If API data fails:
 - Confirm internet access.
-- Restart ionic serve.
-- Confirm proxy configuration is present.
+- Restart `ionic serve`.
+- Confirm proxy configuration.
 
-If app does not start:
-- Delete node_modules.
-- Re-run npm install.
-- Re-run ionic serve.
+If startup fails:
+- Remove `node_modules`.
+- Re-run `npm install`.
+- Re-run `ionic serve`.
 
-If saved data appears incorrect:
-- Use reset action in settings.
-- Reload the application.
-
-## 10. Notes for GitHub Wiki
-Copy the content of this guide into your repository wiki as your official User Guide page.
-If you add new features, update both this file and the wiki page so documentation remains consistent.
+If portfolio state is unexpected:
+- Use Settings reset action.
+- Reload the app.

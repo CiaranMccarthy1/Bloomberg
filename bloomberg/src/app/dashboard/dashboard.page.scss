@@ -12,7 +12,10 @@ ion-content {
   min-height: 100vh;
   margin: 0;
   border: 1px solid #1b222c;
-  background: var(--app-bg);
+  background:
+    radial-gradient(920px 380px at 92% -55%, rgba(255, 162, 0, 0.16), transparent 65%),
+    radial-gradient(720px 300px at -8% 10%, rgba(60, 136, 196, 0.16), transparent 62%),
+    var(--app-bg);
   color: var(--app-text);
   font-family: 'Courier New', Courier, monospace;
   font-size: calc(11px * var(--app-font-multiplier));
@@ -110,7 +113,7 @@ ion-content {
 }
 
 .top-purple {
-  background: #251233;
+  background: #152538;
   min-height: 34px;
   border-bottom: 1px solid #2e3240;
   overflow: hidden;
@@ -155,7 +158,7 @@ ion-content {
 
 .left-stack {
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto 1fr;
   gap: 10px;
 }
 
@@ -186,6 +189,11 @@ ion-content {
   background: #121922;
   border-left: 3px solid #8492a6;
   color: #d8e0ea;
+}
+
+.cyan {
+  background: #0f1b24;
+  border-left: 3px solid #5eb8ff;
 }
 
 .brown {
@@ -341,6 +349,50 @@ ion-content {
   padding: 8px 0;
 }
 
+.coach-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 10px;
+  color: #c7d4e4;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.goal-track {
+  margin: 8px 0 6px;
+  width: 100%;
+  height: 10px;
+  border: 1px solid #274966;
+  background: rgba(16, 34, 51, 0.8);
+}
+
+.goal-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2da7ff, #58d7ff);
+}
+
+.coach-message {
+  margin-top: 8px;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.coach-message.good,
+.good {
+  color: #39d98a;
+}
+
+.coach-message.warn,
+.warn {
+  color: #ffd166;
+}
+
+.coach-message.risk,
+.risk {
+  color: #ff6b7a;
+}
+
 .source {
   font-size: 10px;
   font-weight: 700;
@@ -370,6 +422,10 @@ ion-content {
   .layout {
     grid-template-columns: 1fr;
     min-height: auto;
+  }
+
+  .left-stack {
+    grid-template-rows: auto;
   }
 
   .side-drawer {

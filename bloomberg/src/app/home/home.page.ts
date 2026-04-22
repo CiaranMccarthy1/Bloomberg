@@ -14,6 +14,8 @@ Chart.register(...registerables);
 type TickerOption = { symbol: string; name: string };
 type SimPosition = { qty: number; avgCost: number };
 type SimTrade = { side: 'BUY' | 'SELL'; symbol: string; qty: number; price: number; total: number; at: string };
+type PriceAlertDirection = 'above' | 'below';
+type PriceAlert = { id: string; symbol: string; direction: PriceAlertDirection; target: number; createdAt: string; triggeredAt?: string };
 
 @Component({
   selector: 'app-home',
@@ -51,6 +53,16 @@ export class HomePage implements OnInit, OnDestroy {
   currentPositionValue = 0;
   currentPositionUnrealized = 0;
   recentTrades: SimTrade[] = [];
+  watchlist: string[] = [];
+  trendSignal = 'RANGE-BOUND';
+  trendConfidence = 0;
+  trendReturnPct = 0;
+  volatilityPct = 0;
+  autoRefreshSec = 180;
+  alertTargetInput: number | null = null;
+  alertDirectionInput: PriceAlertDirection = 'above';
+  alertStatus = '';
+  priceAlerts: PriceAlert[] = [];
 
   symbol = '^GSPC';
   symbolInput = '^GSPC';
@@ -116,6 +128,7 @@ export class HomePage implements OnInit, OnDestroy {
     this.symbolInput = this.symbol;
     await this.storage.set('symbol', this.symbol);
     await this.loadSimState();
+    await this.loadExperienceState();
     if (typeof savedRange === 'string' && this.ranges.includes(savedRange)) {
       this.activeRange = savedRange;
     }
@@ -123,7 +136,7 @@ export class HomePage implements OnInit, OnDestroy {
     this.tickClock();
     this.clockInterval = setInterval(() => this.tickClock(), 1000);
     this.loadChart(this.activeRange);
-    this.refreshInterval = setInterval(() => this.loadChart(this.activeRange), 180000);
+    this.refreshInterval = setInterval(() => this.loadChart(this.activeRange), this.autoRefreshSec * 1000);
   }
 
   ngOnDestroy() {
@@ -150,7 +163,12 @@ export class HomePage implements OnInit, OnDestroy {
     if (!nextSymbol) return;
     this.symbol = nextSymbol;
     await this.storage.set('symbol', this.symbol);
+    if (!this.watchlist.includes(this.symbol)) {
+      this.watchlist = [this.symbol, ...this.watchlist].slice(0, 12);
+      await this.persistWatchlist();
+    }
     this.refreshSimMetrics();
+    this.evaluateAlerts();
     this.showSuggestions = false;
     this.loadChart(this.activeRange);
   }
@@ -166,10 +184,62 @@ export class HomePage implements OnInit, OnDestroy {
     this.refreshSimMetrics();
   }
 
+  private async loadExperienceState(): Promise<void> {
+    const sRefresh = Number(await this.storage.get('settings.autoRefreshSec'));
+    if (Number.isFinite(sRefresh) && sRefresh >= 30 && sRefresh <= 600) {
+      this.autoRefreshSec = Math.round(sRefresh);
+    }
+
+    const defaultWatch = [this.defaultSymbol, 'AAPL', 'MSFT', 'NVDA'];
+    const savedWatch = await this.storage.get('watchlist');
+    const source = Array.isArray(savedWatch) ? savedWatch : defaultWatch;
+    this.watchlist = Array.from(new Set(
+      source
+        .map(item => String(item || '').trim().toUpperCase())
+        .filter(Boolean)
+    )).slice(0, 12);
+
+    if (!this.watchlist.includes(this.symbol)) {
+      this.watchlist.unshift(this.symbol);
+      this.watchlist = Array.from(new Set(this.watchlist)).slice(0, 12);
+    }
+    await this.persistWatchlist();
+
+    const savedAlerts = await this.storage.get('priceAlerts');
+    this.priceAlerts = Array.isArray(savedAlerts)
+      ? savedAlerts
+          .map(row => this.normalizeAlert(row))
+          .filter((x): x is PriceAlert => x !== null)
+          .slice(0, 30)
+      : [];
+  }
+
+  private normalizeAlert(raw: unknown): PriceAlert | null {
+    if (typeof raw !== 'object' || raw === null) return null;
+    const row = raw as Record<string, unknown>;
+    const id = typeof row['id'] === 'string' ? row['id'] : '';
+    const symbol = typeof row['symbol'] === 'string' ? row['symbol'].trim().toUpperCase() : '';
+    const direction = row['direction'] === 'below' ? 'below' : row['direction'] === 'above' ? 'above' : '';
+    const target = Number(row['target']);
+    const createdAt = typeof row['createdAt'] === 'string' ? row['createdAt'] : '';
+    const triggeredAt = typeof row['triggeredAt'] === 'string' ? row['triggeredAt'] : undefined;
+
+    if (!id || !symbol || !direction || !Number.isFinite(target) || target <= 0 || !createdAt) return null;
+    return { id, symbol, direction, target, createdAt, triggeredAt };
+  }
+
   private async persistSimState(): Promise<void> {
     await this.storage.set('simCash', this.simCash);
     await this.storage.set('simPositions', this.simPositions);
     await this.storage.set('simTrades', this.recentTrades.slice(0, 20));
+  }
+
+  private async persistWatchlist(): Promise<void> {
+    await this.storage.set('watchlist', this.watchlist.slice(0, 12));
+  }
+
+  private async persistAlerts(): Promise<void> {
+    await this.storage.set('priceAlerts', this.priceAlerts.slice(0, 30));
   }
 
   private refreshSimMetrics(): void {
@@ -240,6 +310,97 @@ export class HomePage implements OnInit, OnDestroy {
     this.tradeMessage = `Sold ${qty} ${this.symbol} @ ${this.fmt(this.currentPriceNum)}`;
     this.refreshSimMetrics();
     await this.persistSimState();
+  }
+
+  get symbolName(): string {
+    const match = this.tickerOptions.find(t => t.symbol.toUpperCase() === this.symbol.toUpperCase());
+    return match?.name ?? 'MARKET SNAPSHOT';
+  }
+
+  get openAlertsForSymbol(): PriceAlert[] {
+    return this.priceAlerts.filter(a => a.symbol === this.symbol && !a.triggeredAt).slice(0, 5);
+  }
+
+  get triggeredAlertsForSymbol(): PriceAlert[] {
+    return this.priceAlerts.filter(a => a.symbol === this.symbol && !!a.triggeredAt).slice(0, 5);
+  }
+
+  get recentTradesView(): SimTrade[] {
+    return this.recentTrades.slice(0, 6);
+  }
+
+  get isCurrentWatched(): boolean {
+    return this.watchlist.includes(this.symbol);
+  }
+
+  async toggleWatchCurrent(): Promise<void> {
+    const symbol = this.symbol.trim().toUpperCase();
+    if (!symbol) return;
+
+    if (this.watchlist.includes(symbol)) {
+      this.watchlist = this.watchlist.filter(s => s !== symbol);
+      if (!this.watchlist.length) this.watchlist = [symbol];
+    } else {
+      this.watchlist = [symbol, ...this.watchlist].slice(0, 12);
+    }
+
+    await this.persistWatchlist();
+  }
+
+  loadWatchSymbol(symbol: string): void {
+    this.symbolInput = symbol;
+    this.applySymbol();
+  }
+
+  async addPriceAlert(): Promise<void> {
+    const target = Number(this.alertTargetInput);
+    if (!Number.isFinite(target) || target <= 0) {
+      this.alertStatus = 'Enter a valid alert target';
+      return;
+    }
+
+    const symbol = this.symbol.trim().toUpperCase();
+    const duplicate = this.priceAlerts.some(a =>
+      !a.triggeredAt &&
+      a.symbol === symbol &&
+      a.direction === this.alertDirectionInput &&
+      Math.abs(a.target - target) < 0.0001
+    );
+
+    if (duplicate) {
+      this.alertStatus = 'An identical alert already exists';
+      return;
+    }
+
+    const alert: PriceAlert = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      symbol,
+      direction: this.alertDirectionInput,
+      target,
+      createdAt: new Date().toISOString()
+    };
+
+    this.priceAlerts = [alert, ...this.priceAlerts].slice(0, 30);
+    this.alertStatus = `Alert armed: ${symbol} ${this.alertDirectionInput === 'above' ? '>' : '<'} ${this.money(target)}`;
+    this.alertTargetInput = null;
+    await this.persistAlerts();
+    this.evaluateAlerts();
+  }
+
+  async removeAlert(id: string): Promise<void> {
+    this.priceAlerts = this.priceAlerts.filter(a => a.id !== id);
+    await this.persistAlerts();
+  }
+
+  async clearTriggeredAlerts(): Promise<void> {
+    this.priceAlerts = this.priceAlerts.filter(a => !a.triggeredAt);
+    await this.persistAlerts();
+    this.alertStatus = 'Triggered alerts cleared';
+  }
+
+  tradeTime(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
   }
 
   onSymbolInputChange(value: string): void {
@@ -341,6 +502,80 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
+  private evaluateAlerts(): void {
+    if (this.currentPriceNum <= 0) return;
+
+    let changed = false;
+    let latestTriggered: PriceAlert | null = null;
+    this.priceAlerts = this.priceAlerts.map(alert => {
+      if (alert.triggeredAt || alert.symbol !== this.symbol) return alert;
+
+      const hit = alert.direction === 'above'
+        ? this.currentPriceNum >= alert.target
+        : this.currentPriceNum <= alert.target;
+
+      if (!hit) return alert;
+
+      changed = true;
+      latestTriggered = { ...alert, triggeredAt: new Date().toISOString() };
+      return latestTriggered;
+    });
+
+    if (changed) {
+      const directionLabel = latestTriggered?.direction === 'above' ? 'above' : 'below';
+      this.alertStatus = `Alert triggered: ${this.symbol} moved ${directionLabel} ${this.money(latestTriggered?.target ?? 0)}`;
+      this.tradeMessage = this.alertStatus;
+      void this.persistAlerts();
+    }
+  }
+
+  private updateMarketAnalytics(prices: number[]): void {
+    if (prices.length < 2) {
+      this.trendSignal = 'RANGE-BOUND';
+      this.trendConfidence = 0;
+      this.trendReturnPct = 0;
+      this.volatilityPct = 0;
+      return;
+    }
+
+    const first = prices[0];
+    const last = prices[prices.length - 1];
+    this.trendReturnPct = first ? ((last - first) / first) * 100 : 0;
+
+    const returns: number[] = [];
+    for (let i = 1; i < prices.length; i++) {
+      const prev = prices[i - 1];
+      if (!prev) continue;
+      returns.push((prices[i] - prev) / prev);
+    }
+
+    if (!returns.length) {
+      this.volatilityPct = 0;
+      this.trendConfidence = Math.min(99, Math.round(Math.abs(this.trendReturnPct) * 8));
+      this.trendSignal = this.trendReturnPct >= 0 ? 'BULLISH' : 'BEARISH';
+      return;
+    }
+
+    const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+    const variance = returns.reduce((sum, r) => sum + (r - mean) * (r - mean), 0) / returns.length;
+    this.volatilityPct = Math.sqrt(Math.max(variance, 0)) * Math.sqrt(252) * 100;
+
+    const momentum = Math.abs(this.trendReturnPct);
+    this.trendConfidence = Math.min(99, Math.round(momentum * 7 + Math.max(0, 20 - this.volatilityPct)));
+
+    if (this.trendReturnPct > 0.6) {
+      this.trendSignal = this.volatilityPct > 45 ? 'BULLISH / VOLATILE' : 'BULLISH';
+      return;
+    }
+
+    if (this.trendReturnPct < -0.6) {
+      this.trendSignal = this.volatilityPct > 45 ? 'BEARISH / VOLATILE' : 'BEARISH';
+      return;
+    }
+
+    this.trendSignal = 'RANGE-BOUND';
+  }
+
   private fetchChartData(range: string, interval: string, symbol: string): Observable<{ meta: any; timestamps: number[]; closes: Array<number | null> }> {
     const url = `${environment.apiBaseUrl}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
     return this.http.get<any>(url).pipe(
@@ -423,7 +658,9 @@ export class HomePage implements OnInit, OnDestroy {
       this.statPrev = this.fmt(prev);
       this.stat52h = this.fmt(meta.fiftyTwoWeekHigh);
       this.stat52l = this.fmt(meta.fiftyTwoWeekLow);
+      this.updateMarketAnalytics(prices);
       this.refreshSimMetrics();
+      this.evaluateAlerts();
       this.loading = false;
       this.renderChart(labels, prices, isUp);
     });

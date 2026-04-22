@@ -18,8 +18,8 @@
 
     <div class="header">
       <div>
-        <div class="symbol">S&P 500</div>
-        <div class="index-name">INDEX SNAPSHOT</div>
+        <div class="symbol">{{ symbol }}</div>
+        <div class="index-name">{{ symbolName }}</div>
       </div>
       <div>
         <div class="price">{{ price }}</div>
@@ -62,7 +62,13 @@
         </div>
       </div>
       <button class="rb" type="button" (click)="applySymbol()">LOAD</button>
+      <button class="rb watch" type="button" (click)="toggleWatchCurrent()">{{ isCurrentWatched ? 'UNWATCH' : 'WATCH' }}</button>
       <span class="symbol-active">{{ symbol }}</span>
+    </div>
+
+    <div class="watchlistbar">
+      <span class="res-label">WATCHLIST</span>
+      <button class="watch-chip" type="button" *ngFor="let w of watchlist" [class.active]="w === symbol" (click)="loadWatchSymbol(w)">{{ w }}</button>
     </div>
 
     <div class="tradebar">
@@ -86,6 +92,62 @@
       <div class="loading" *ngIf="loading">{{ loadingMsg }}</div>
     </div>
 
-    <div class="statusbar">DELAYED QUOTE · DATA VIA YAHOO FINANCE</div>
+    <div class="insights-grid">
+      <section class="insight-card">
+        <h4>MARKET INTELLIGENCE</h4>
+        <div class="insight-row"><span>TREND SIGNAL</span><span>{{ trendSignal }}</span></div>
+        <div class="insight-row"><span>MOMENTUM</span><span [class.up]="trendReturnPct >= 0" [class.dn]="trendReturnPct < 0">{{ trendReturnPct >= 0 ? '+' : '' }}{{ trendReturnPct.toFixed(2) }}%</span></div>
+        <div class="insight-row"><span>VOLATILITY</span><span>{{ volatilityPct.toFixed(2) }}%</span></div>
+        <div class="insight-row"><span>CONFIDENCE</span><span>{{ trendConfidence }} / 99</span></div>
+      </section>
+
+      <section class="insight-card">
+        <h4>PRICE ALERTS</h4>
+        <div class="alert-editor">
+          <select [(ngModel)]="alertDirectionInput">
+            <option value="above">ABOVE</option>
+            <option value="below">BELOW</option>
+          </select>
+          <input type="number" [(ngModel)]="alertTargetInput" min="0" step="0.01" placeholder="Target price">
+          <button class="rb" type="button" (click)="addPriceAlert()">ARM</button>
+        </div>
+        <div class="alert-status">{{ alertStatus }}</div>
+
+        <div class="alert-list" *ngIf="openAlertsForSymbol.length; else noOpenAlerts">
+          <div class="alert-row" *ngFor="let a of openAlertsForSymbol">
+            <span>{{ a.direction === 'above' ? '>' : '<' }} {{ money(a.target) }}</span>
+            <button class="rb danger" type="button" (click)="removeAlert(a.id)">X</button>
+          </div>
+        </div>
+        <ng-template #noOpenAlerts>
+          <div class="placeholder">No active alerts for {{ symbol }}</div>
+        </ng-template>
+
+        <div class="alert-list triggered" *ngIf="triggeredAlertsForSymbol.length">
+          <div class="alert-row" *ngFor="let a of triggeredAlertsForSymbol">
+            <span>TRIGGERED {{ a.direction === 'above' ? '>' : '<' }} {{ money(a.target) }}</span>
+            <span>{{ tradeTime(a.triggeredAt || a.createdAt) }}</span>
+          </div>
+          <button class="rb" type="button" (click)="clearTriggeredAlerts()">CLEAR TRIGGERED</button>
+        </div>
+      </section>
+
+      <section class="insight-card">
+        <h4>RECENT EXECUTIONS</h4>
+        <div class="trade-list" *ngIf="recentTradesView.length; else noTrades">
+          <div class="trade-row" *ngFor="let t of recentTradesView">
+            <span [class.up]="t.side === 'BUY'" [class.dn]="t.side === 'SELL'">{{ t.side }}</span>
+            <span>{{ t.symbol }} x{{ t.qty }}</span>
+            <span>{{ money(t.total) }}</span>
+            <span>{{ tradeTime(t.at) }}</span>
+          </div>
+        </div>
+        <ng-template #noTrades>
+          <div class="placeholder">No trades executed yet</div>
+        </ng-template>
+      </section>
+    </div>
+
+    <div class="statusbar">DELAYED QUOTE · DATA VIA YAHOO FINANCE · AUTO REFRESH {{ autoRefreshSec }}s</div>
   </div>
 </ion-content>
