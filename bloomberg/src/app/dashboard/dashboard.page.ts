@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { NavigationEnd, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
-import { Subscription, catchError, filter, forkJoin, map, of, switchMap } from 'rxjs';
+import { Subscription, catchError, filter, firstValueFrom, forkJoin, from, map, of, switchMap } from 'rxjs';
 import { Storage } from '@ionic/storage-angular';
 import { environment } from '../../environments/environment';
 
 type BoughtStock = { symbol: string; quantity: number; avgBuyPrice: number };
 type UserData = { user: string; balance: number; boughtStocks: BoughtStock[] };
+type SimPosition = { qty: number; avgCost: number };
+type SimTrade = { side: 'BUY' | 'SELL'; symbol: string; qty: number; price: number; total: number; at: string };
 type StockView = BoughtStock & { currentPrice: number; cost: number; value: number; pnl: number; pnlPct: number };
 type MarketItem = { symbol: string; price: number; weekPct: number };
 type SectorSlice = { sector: string; value: number; pct: number };
@@ -34,6 +36,9 @@ export class DashboardPage implements OnInit, OnDestroy {
   private readonly portfolioRefreshMs = 10000;
   private readonly newsRefreshMs = 30000;
   navExpanded = false;
+  private tradeLog: SimTrade[] = [];
+  private historyFingerprint = '';
+  private historyHourKey = '';
 
   userName = '';
   currency = 'USD';
@@ -140,10 +145,6 @@ export class DashboardPage implements OnInit, OnDestroy {
     const now = new Date();
     this.currentTime = now.toLocaleTimeString('en-US', { hour12: false });
     this.currentDate = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
-
-    if (!this.loading && !this.error && (this.holdings.length || this.accountHistory.length)) {
-      this.accountHistory = this.buildHistory();
-    }
   }
 
   private loadUserData(isBackgroundRefresh = false): void {
@@ -152,7 +153,7 @@ export class DashboardPage implements OnInit, OnDestroy {
       this.error = '';
     }
 
-    this.http.get<UserData>('assets/user-data.json').pipe(
+    from(this.getLiveUserData()).pipe(
       switchMap(userData => {
         const symbols = userData.boughtStocks.map(s => s.symbol.toUpperCase());
 
@@ -204,7 +205,7 @@ export class DashboardPage implements OnInit, OnDestroy {
         this.totalPnl = data.totalPnl;
         this.totalPnlPct = data.totalPnlPct;
         this.sectorAllocation = this.buildSectorAllocation();
-        this.accountHistory = this.buildHistory();
+        void this.refreshPortfolioHistory(data.userData);
         this.computeCoachInsights();
         if (!isBackgroundRefresh) {
           this.loadMarketPanels();
@@ -221,6 +222,197 @@ export class DashboardPage implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  private async getLiveUserData(): Promise<UserData> {
+    const fallbackFromAsset = async (): Promise<UserData> => {
+      try {
+        return await firstValueFrom(this.http.get<UserData>('assets/user-data.json'));
+      } catch {
+        // fall through to hard fallback
+      }
+
+      return {
+        user: this.userName || 'INVESTOR',
+        balance: 100000,
+        boughtStocks: []
+      };
+    };
+
+    const savedCash = await this.storage.get('simCash');
+    const rawPositions = await this.storage.get('simPositions');
+    const rawTrades = await this.storage.get('simTrades');
+
+    const hasCash = typeof savedCash === 'number' && Number.isFinite(savedCash);
+    const sourcePositions = (rawPositions && typeof rawPositions === 'object')
+      ? (rawPositions as Record<string, unknown>)
+      : {};
+
+    const boughtStocks: BoughtStock[] = Object.entries(sourcePositions)
+      .map(([symbol, value]) => {
+        const row = (value && typeof value === 'object') ? (value as Partial<SimPosition>) : null;
+        const quantity = Number(row?.qty ?? 0);
+        const avgBuyPrice = Number(row?.avgCost ?? 0);
+        return {
+          symbol: symbol.toUpperCase(),
+          quantity,
+          avgBuyPrice
+        };
+      })
+      .filter(s => Number.isFinite(s.quantity) && Number.isFinite(s.avgBuyPrice) && s.quantity > 0 && s.avgBuyPrice >= 0);
+
+      this.tradeLog = Array.isArray(rawTrades)
+        ? rawTrades
+          .map(x => this.normalizeTrade(x))
+          .filter((x): x is SimTrade => x !== null)
+          .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+        : [];
+
+    if (hasCash || boughtStocks.length > 0) {
+      return {
+        user: this.userName || 'INVESTOR',
+        balance: hasCash ? Number(savedCash) : 100000,
+        boughtStocks
+      };
+    }
+
+    return fallbackFromAsset();
+  }
+
+  private normalizeTrade(raw: unknown): SimTrade | null {
+    if (typeof raw !== 'object' || raw === null) return null;
+    const row = raw as Record<string, unknown>;
+    const side = row['side'] === 'SELL' ? 'SELL' : row['side'] === 'BUY' ? 'BUY' : null;
+    const symbol = String(row['symbol'] ?? '').trim().toUpperCase();
+    const qty = Number(row['qty']);
+    const price = Number(row['price']);
+    const total = Number(row['total']);
+    const at = String(row['at'] ?? '');
+
+    if (!side || !symbol || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price < 0 || !Number.isFinite(total) || total < 0 || !at) {
+      return null;
+    }
+
+    return { side, symbol, qty, price, total, at };
+  }
+
+  private dayKey(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  private formatDayLabel(date: Date, isToday: boolean): string {
+    if (isToday) return 'TODAY';
+    return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).toUpperCase();
+  }
+
+  private async fetchDailyCloseMaps(symbols: string[]): Promise<Map<string, Map<string, number>>> {
+    const out = new Map<string, Map<string, number>>();
+
+    await Promise.all(symbols.map(async symbol => {
+      try {
+        const url = `${environment.apiBaseUrl}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5y`;
+        const response = await firstValueFrom(this.http.get<any>(url));
+        const result = response?.chart?.result?.[0];
+        const timestamps: number[] = result?.timestamp ?? [];
+        const closes: Array<number | null> = result?.indicators?.quote?.[0]?.close ?? [];
+
+        const mapByDay = new Map<string, number>();
+        for (let i = 0; i < timestamps.length; i++) {
+          const close = closes[i];
+          if (close == null || !Number.isFinite(close)) continue;
+          mapByDay.set(this.dayKey(new Date(timestamps[i] * 1000)), Number(close));
+        }
+        out.set(symbol, mapByDay);
+      } catch {
+        out.set(symbol, new Map<string, number>());
+      }
+    }));
+
+    return out;
+  }
+
+  private async refreshPortfolioHistory(userData: UserData): Promise<void> {
+    const now = new Date();
+    const hourKey = `${this.dayKey(now)}-${now.getHours()}`;
+    const fingerprint = `${this.cashBalance.toFixed(2)}|${this.totalValue.toFixed(2)}|${this.tradeLog.map(t => `${t.side}:${t.symbol}:${t.qty}:${t.total}:${t.at}`).join(';')}`;
+
+    if (this.historyFingerprint === fingerprint && this.historyHourKey === hourKey && this.accountHistory.length) {
+      return;
+    }
+
+    const trades = [...this.tradeLog].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+    if (!trades.length) {
+      this.accountHistory = [{ label: 'TODAY', value: this.portfolioNow }];
+      this.historyFingerprint = fingerprint;
+      this.historyHourKey = hourKey;
+      return;
+    }
+
+    const firstAt = new Date(trades[0].at);
+    const startDay = new Date(firstAt.getFullYear(), firstAt.getMonth(), firstAt.getDate());
+    const endDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endDayKey = this.dayKey(endDay);
+
+    const symbols = Array.from(new Set([
+      ...trades.map(t => t.symbol.toUpperCase()),
+      ...userData.boughtStocks.map(h => h.symbol.toUpperCase())
+    ]));
+    const closeMaps = await this.fetchDailyCloseMaps(symbols);
+
+    const buysMinusSells = trades.reduce((sum, t) => sum + (t.side === 'BUY' ? t.total : -t.total), 0);
+    let cash = this.cashBalance + buysMinusSells;
+    const positions = new Map<string, number>();
+    const lastKnownClose = new Map<string, number>();
+    const history: HistoryPoint[] = [];
+
+    let ti = 0;
+    for (let day = new Date(startDay); day <= endDay; day.setDate(day.getDate() + 1)) {
+      const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999).getTime();
+      while (ti < trades.length && new Date(trades[ti].at).getTime() <= dayEnd) {
+        const t = trades[ti];
+        const sym = t.symbol.toUpperCase();
+        const currentQty = positions.get(sym) ?? 0;
+        if (t.side === 'BUY') {
+          positions.set(sym, currentQty + t.qty);
+          cash -= t.total;
+        } else {
+          const nextQty = Math.max(0, currentQty - t.qty);
+          if (nextQty <= 0) {
+            positions.delete(sym);
+          } else {
+            positions.set(sym, nextQty);
+          }
+          cash += t.total;
+        }
+        ti++;
+      }
+
+      const key = this.dayKey(day);
+      for (const sym of symbols) {
+        const close = closeMaps.get(sym)?.get(key);
+        if (close != null && Number.isFinite(close)) {
+          lastKnownClose.set(sym, close);
+        }
+      }
+
+      const isToday = key === endDayKey;
+      let holdingsValue = 0;
+      for (const [sym, qty] of positions.entries()) {
+        holdingsValue += qty * (lastKnownClose.get(sym) ?? 0);
+      }
+
+      history.push({
+        label: this.formatDayLabel(new Date(day), isToday),
+        value: isToday ? this.portfolioNow : cash + holdingsValue
+      });
+    }
+
+    this.accountHistory = history;
+    this.historyFingerprint = fingerprint;
+    this.historyHourKey = hourKey;
   }
 
   get goalProgressBarPct(): number {
@@ -358,35 +550,25 @@ export class DashboardPage implements OnInit, OnDestroy {
   }
 
   private buildSectorAllocation(): SectorSlice[] {
-    if (!this.holdings.length) {
-      return [
-        { sector: 'Cash', value: this.cashBalance, pct: 100 }
-      ];
+    const bySector = new Map<string, number>();
+
+    if (this.cashBalance > 0) {
+      bySector.set('Cash', this.cashBalance);
     }
 
-    const bySector = new Map<string, number>();
     for (const h of this.holdings) {
       const sector = this.sectorMap[h.symbol.toUpperCase()] ?? 'Other';
       bySector.set(sector, (bySector.get(sector) ?? 0) + h.value);
+    }
+
+    if (!bySector.size) {
+      bySector.set('Cash', 0);
     }
 
     const total = Array.from(bySector.values()).reduce((a, b) => a + b, 0) || 1;
     return Array.from(bySector.entries())
       .map(([sector, value]) => ({ sector, value, pct: (value / total) * 100 }))
       .sort((a, b) => b.value - a.value);
-  }
-
-  private buildHistory(): HistoryPoint[] {
-    const labels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    const nowValue = this.portfolioNow || this.cashBalance || 100000;
-    const drift = this.totalPnl / 8;
-    const phase = Date.now() / 1000;
-    return labels.map((label, i) => {
-      const wave = Math.sin(i * 0.8 + phase * 0.35) * 180;
-      const micro = Math.cos(phase * 0.85 + i * 0.45) * 40;
-      const value = nowValue - (6 - i) * drift + wave + micro;
-      return { label, value };
-    });
   }
 
   private fallbackMarket(): MarketItem[] {
