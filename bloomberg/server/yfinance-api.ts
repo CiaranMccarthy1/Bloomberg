@@ -5,7 +5,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { IonContent } from '@ionic/angular/standalone';
 import { Subscription, catchError, filter, firstValueFrom, forkJoin, from, map, of, switchMap } from 'rxjs';
 import { Storage } from '@ionic/storage-angular';
-import { environment } from '../../environments/environment';
+import { environment } from '../src/environments/environment';
 
 type BoughtStock = { symbol: string; quantity: number; avgBuyPrice: number };
 type UserData = { user: string; balance: number; boughtStocks: BoughtStock[] };
@@ -22,8 +22,8 @@ type RiskProfile = 'conservative' | 'balanced' | 'aggressive';
   selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule, IonContent],
-  templateUrl: './dashboard.page.html',
-  styleUrls: ['./dashboard.page.scss']
+  templateUrl: '../src/app/dashboard/dashboard.page.html',
+  styleUrls: ['../src/app/dashboard/dashboard.page.scss']
 })
 export class DashboardPage implements OnInit, OnDestroy {
   currentTime = '';
