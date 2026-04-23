@@ -1,14 +1,10 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { IonContent } from '@ionic/angular/standalone';
-import { Storage } from '@ionic/storage-angular';
-import { firstValueFrom } from 'rxjs';
-
-type UserData = { user: string; balance: number; boughtStocks: Array<{ symbol: string; quantity: number; avgBuyPrice: number }> };
-type RiskProfile = 'conservative' | 'balanced' | 'aggressive';
+import { FinanceService } from '../services/finance.service';
+import { RiskProfile } from '../models/finance.models';
 
 @Component({
   selector: 'app-settings',
@@ -34,38 +30,23 @@ export class SettingsPage implements OnInit {
   watchlistSeed = '^GSPC, AAPL, MSFT, NVDA';
   status = '';
 
-  constructor(private router: Router, private http: HttpClient, @Inject(Storage) private storage: Storage) {}
+  constructor(private router: Router, private financeService: FinanceService) {}
 
   async ngOnInit(): Promise<void> {
-    await this.storage.create();
-    const userData = await firstValueFrom(this.http.get<UserData>('assets/user-data.json'));
+    const userData = await this.financeService.getLiveUserData();
 
-    const sUserName = await this.storage.get('settings.userName');
-    const sDefaultSymbol = await this.storage.get('settings.defaultSymbol');
-    const sCurrency = await this.storage.get('settings.currency');
-    const sTheme = await this.storage.get('settings.theme');
-    const sFontSize = await this.storage.get('settings.fontSize');
-    const sRiskProfile = await this.storage.get('settings.riskProfile');
-    const sTargetPortfolio = await this.storage.get('settings.targetPortfolio');
-    const sAutoRefreshSec = await this.storage.get('settings.autoRefreshSec');
-    const sWatchlist = await this.storage.get('watchlist');
-
-    this.userName = (sUserName ?? userData?.user ?? '').toString();
-    this.defaultSymbol = (sDefaultSymbol ?? (await this.storage.get('symbol')) ?? '^GSPC').toString();
-    this.currency = (sCurrency ?? 'USD').toString();
-    this.theme = (sTheme ?? 'sleek-dark').toString();
-    this.fontSize = (sFontSize ?? 'medium').toString();
-    this.riskProfile = this.parseRiskProfile((sRiskProfile ?? 'balanced').toString());
-
-    const target = Number(sTargetPortfolio);
-    this.targetPortfolio = Number.isFinite(target) && target >= 1000 ? target : 125000;
-
-    const refresh = Number(sAutoRefreshSec);
-    this.autoRefreshSec = Number.isFinite(refresh) && refresh >= 30 && refresh <= 600 ? Math.round(refresh) : 180;
-
+    this.userName = await this.financeService.getStorageValue('settings.userName', userData?.user || 'INVESTOR');
+    this.defaultSymbol = await this.financeService.getStorageValue('settings.defaultSymbol', await this.financeService.getStorageValue('symbol', '^GSPC'));
+    this.currency = await this.financeService.getStorageValue('settings.currency', 'USD');
+    this.theme = await this.financeService.getStorageValue('settings.theme', 'sleek-dark');
+    this.fontSize = await this.financeService.getStorageValue('settings.fontSize', 'medium');
+    this.riskProfile = await this.financeService.getStorageValue('settings.riskProfile', 'balanced') as RiskProfile;
+    this.targetPortfolio = Number(await this.financeService.getStorageValue('settings.targetPortfolio', 125000));
+    this.autoRefreshSec = Number(await this.financeService.getStorageValue('settings.autoRefreshSec', 180));
+    
+    const sWatchlist = await this.financeService.getStorageValue('watchlist', []);
     if (Array.isArray(sWatchlist) && sWatchlist.length) {
-      const normalized = sWatchlist.map((s: unknown) => String(s || '').trim().toUpperCase()).filter(Boolean);
-      if (normalized.length) this.watchlistSeed = normalized.join(', ');
+      this.watchlistSeed = sWatchlist.join(', ');
     }
 
     this.applyDisplaySettings();
@@ -104,7 +85,6 @@ export class SettingsPage implements OnInit {
 
   async saveSettings(): Promise<void> {
     const cleanSymbol = this.defaultSymbol.trim().toUpperCase() || '^GSPC';
-    const cleanRisk = this.parseRiskProfile(this.riskProfile);
     const cleanTarget = Math.min(50000000, Math.max(1000, Math.round(Number(this.targetPortfolio) || 125000)));
     const cleanRefresh = Math.min(600, Math.max(30, Math.round(Number(this.autoRefreshSec) || 180)));
     const parsedWatchlist = Array.from(new Set(
@@ -117,21 +97,20 @@ export class SettingsPage implements OnInit {
     if (!parsedWatchlist.length) parsedWatchlist.push(cleanSymbol);
 
     this.defaultSymbol = cleanSymbol;
-    this.riskProfile = cleanRisk;
     this.targetPortfolio = cleanTarget;
     this.autoRefreshSec = cleanRefresh;
     this.watchlistSeed = parsedWatchlist.join(', ');
 
-    await this.storage.set('settings.userName', this.userName);
-    await this.storage.set('settings.defaultSymbol', cleanSymbol);
-    await this.storage.set('settings.currency', this.currency);
-    await this.storage.set('settings.theme', this.theme);
-    await this.storage.set('settings.fontSize', this.fontSize);
-    await this.storage.set('settings.riskProfile', cleanRisk);
-    await this.storage.set('settings.targetPortfolio', cleanTarget);
-    await this.storage.set('settings.autoRefreshSec', cleanRefresh);
-    await this.storage.set('symbol', cleanSymbol);
-    await this.storage.set('watchlist', parsedWatchlist);
+    await this.financeService.setStorageValue('settings.userName', this.userName);
+    await this.financeService.setStorageValue('settings.defaultSymbol', cleanSymbol);
+    await this.financeService.setStorageValue('settings.currency', this.currency);
+    await this.financeService.setStorageValue('settings.theme', this.theme);
+    await this.financeService.setStorageValue('settings.fontSize', this.fontSize);
+    await this.financeService.setStorageValue('settings.riskProfile', this.riskProfile);
+    await this.financeService.setStorageValue('settings.targetPortfolio', cleanTarget);
+    await this.financeService.setStorageValue('settings.autoRefreshSec', cleanRefresh);
+    await this.financeService.setStorageValue('symbol', cleanSymbol);
+    await this.financeService.setStorageValue('watchlist', parsedWatchlist);
 
     this.applyDisplaySettings();
     this.status = 'Settings saved. Trading intelligence and dashboard coach updated.';
@@ -143,9 +122,9 @@ export class SettingsPage implements OnInit {
   }
 
   async resetPortfolio(): Promise<void> {
-    await this.storage.set('simCash', 100000);
-    await this.storage.set('simPositions', {});
-    await this.storage.set('simTrades', []);
+    await this.financeService.setStorageValue('simCash', 100000);
+    await this.financeService.setStorageValue('simPositions', {});
+    await this.financeService.setStorageValue('simTrades', []);
     this.status = 'Cash reset to 100,000 and owned stocks cleared';
   }
 
@@ -160,9 +139,9 @@ export class SettingsPage implements OnInit {
       targetPortfolio: this.targetPortfolio,
       autoRefreshSec: this.autoRefreshSec,
       watchlist: this.watchlistSeed.split(',').map(s => s.trim().toUpperCase()).filter(Boolean),
-      simCash: (await this.storage.get('simCash')) ?? 100000,
-      simPositions: (await this.storage.get('simPositions')) ?? {},
-      simTrades: (await this.storage.get('simTrades')) ?? [],
+      simCash: await this.financeService.getStorageValue('simCash', 100000),
+      simPositions: await this.financeService.getStorageValue('simPositions', {}),
+      simTrades: await this.financeService.getStorageValue('simTrades', []),
       exportedAt: new Date().toISOString()
     };
 
@@ -180,11 +159,5 @@ export class SettingsPage implements OnInit {
   private applyDisplaySettings(): void {
     document.body.setAttribute('data-theme', this.theme);
     document.body.setAttribute('data-font-size', this.fontSize);
-  }
-
-  private parseRiskProfile(value: string): RiskProfile {
-    const v = value.trim().toLowerCase();
-    if (v === 'conservative' || v === 'aggressive') return v;
-    return 'balanced';
   }
 }
