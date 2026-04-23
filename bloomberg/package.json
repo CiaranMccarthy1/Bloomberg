@@ -4,11 +4,11 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build"
+    "build": "ng build",
+    "api": "node server/yfinance-api.js"
   },
   "private": true,
   "dependencies": {
-    "@capacitor/device": "^6.0.1",
     "@angular/animations": "^17.3.0",
     "@angular/common": "^17.3.0",
     "@angular/compiler": "^17.3.0",
@@ -17,11 +17,15 @@
     "@angular/platform-browser": "^17.3.0",
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
+    "@capacitor/device": "^6.0.1",
     "@ionic/angular": "^7.8.6",
     "@ionic/storage-angular": "^4.0.0",
     "chart.js": "^4.4.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "yahoo-finance2": "^3.14.0",
     "zone.js": "~0.14.3"
   },
   "devDependencies": {

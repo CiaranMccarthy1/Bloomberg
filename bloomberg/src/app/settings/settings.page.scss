@@ -21,8 +21,8 @@ ion-content {
 .topbar {
   position: relative;
   z-index: 12;
-  background: #0b1630;
-  color: #ff9900;
+  background: var(--app-topbar-bg);
+  color: var(--app-accent);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -44,15 +44,15 @@ ion-content {
 
 .clock {
   font-size: 10px;
-  color: #c7cfda;
+  color: var(--app-muted);
 }
 
 .burger {
   width: 30px;
   height: 30px;
-  border: 1px solid #2f3a47;
-  background: #121922;
-  color: #ff9f1a;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-accent);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -65,7 +65,7 @@ ion-content {
   bottom: 0;
   left: 0;
   z-index: 8;
-  background: rgba(5, 7, 10, 0.25);
+  background: var(--app-overlay);
   backdrop-filter: blur(5px);
 }
 
@@ -76,8 +76,8 @@ ion-content {
   bottom: 0;
   z-index: 11;
   width: 210px;
-  background: #0f151d;
-  border-right: 1px solid #2f3a47;
+  background: var(--app-surface);
+  border-right: 1px solid var(--app-border);
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -92,9 +92,9 @@ ion-content {
 
 .tab-link,
 .btn {
-  border: 1px solid #2f3a47;
-  background: #121922;
-  color: #d9dde3;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-text);
   font-family: 'Courier New', Courier, monospace;
   font-size: 10px;
   letter-spacing: 1px;
@@ -105,8 +105,8 @@ ion-content {
 
 .tab-link:hover,
 .btn:hover {
-  border-color: #ff9f1a;
-  color: #ff9f1a;
+  border-color: var(--app-accent);
+  color: var(--app-accent);
 }
 
 .content {
@@ -118,7 +118,7 @@ ion-content {
 h2 {
   margin: 0 0 12px;
   font-size: 14px;
-  color: #ff9f1a;
+  color: var(--app-accent);
 }
 
 .grid {
@@ -135,15 +135,15 @@ label {
   display: grid;
   gap: 6px;
   font-size: 10px;
-  color: #8e9aaa;
+  color: var(--app-muted);
 }
 
 input,
 select,
 textarea {
-  border: 1px solid #2f3a47;
-  background: #090d12;
-  color: #d9dde3;
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-surface) 80%, #000 20%);
+  color: var(--app-text);
   font-family: 'Courier New', Courier, monospace;
   font-size: 11px;
   padding: 8px;
@@ -170,7 +170,7 @@ textarea {
   margin-top: 10px;
   min-height: 16px;
   font-size: 10px;
-  color: #8e9aaa;
+  color: var(--app-muted);
 }
 
 @media (max-width: 680px) {

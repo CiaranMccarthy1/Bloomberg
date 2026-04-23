@@ -23,14 +23,14 @@ ion-content::part(scroll) {
   font-size: calc(11px * var(--app-font-multiplier));
   width: 100%;
   min-height: 100%;
-  border: 1px solid #1a1a1a;
+  border: 1px solid var(--app-border);
 }
 
 .topbar {
   position: relative;
   z-index: 12;
-  background: #0b1630;
-  color: #ff9900;
+  background: var(--app-topbar-bg);
+  color: var(--app-accent);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -40,7 +40,7 @@ ion-content::part(scroll) {
   letter-spacing: 1px;
 
   .logo { font-size: 13px; letter-spacing: 2px; }
-  .clock { font-size: 10px; color: #c7cfda; }
+  .clock { font-size: 10px; color: var(--app-muted); }
 }
 
 .top-left {
@@ -52,9 +52,9 @@ ion-content::part(scroll) {
 .burger {
   width: 30px;
   height: 30px;
-  border: 1px solid #2f3a47;
-  background: #121922;
-  color: #ff9f1a;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-accent);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -67,7 +67,7 @@ ion-content::part(scroll) {
   bottom: 0;
   left: 0;
   z-index: 8;
-  background: rgba(5, 7, 10, 0.25);
+  background: var(--app-overlay);
   backdrop-filter: blur(5px);
 }
 
@@ -78,8 +78,8 @@ ion-content::part(scroll) {
   bottom: 0;
   z-index: 11;
   width: 210px;
-  background: #0f151d;
-  border-right: 1px solid #2f3a47;
+  background: var(--app-surface);
+  border-right: 1px solid var(--app-border);
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -93,9 +93,9 @@ ion-content::part(scroll) {
 }
 
 .tab-link {
-  border: 1px solid #2f3a47;
-  background: #121922;
-  color: #d9dde3;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-text);
   font-family: 'Courier New', Courier, monospace;
   font-size: 11px;
   letter-spacing: 1px;
@@ -104,8 +104,8 @@ ion-content::part(scroll) {
   text-align: left;
 
   &:hover {
-    border-color: #ff9f1a;
-    color: #ff9f1a;
+    border-color: var(--app-accent);
+    color: var(--app-accent);
   }
 }
 
@@ -114,10 +114,10 @@ ion-content::part(scroll) {
   justify-content: space-between;
   align-items: flex-end;
   padding: 10px 12px 8px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--app-border);
 
-  .symbol     { font-size: 22px; font-weight: 600; color: #ff9900; letter-spacing: 1px; }
-  .index-name { color: #444; font-size: 9px; margin-top: 3px; letter-spacing: 0.5px; }
+  .symbol     { font-size: 22px; font-weight: 600; color: var(--app-accent); letter-spacing: 1px; }
+  .index-name { color: var(--app-muted); font-size: 9px; margin-top: 3px; letter-spacing: 0.5px; }
   .price      { font-size: 26px; font-weight: 600; text-align: right; }
   .change     { font-size: 11px; text-align: right; margin-top: 2px; }
 }
@@ -125,15 +125,15 @@ ion-content::part(scroll) {
 .statsbar {
   display: flex;
   flex-wrap: wrap;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--app-border);
 
   .stat {
     padding: 5px 14px;
-    border-right: 1px solid #1a1a1a;
+    border-right: 1px solid var(--app-border);
     line-height: 1.6;
   }
-  .stat-l { color: #444; font-size: 9px; letter-spacing: 1px; }
-  .stat-v { color: #ccc; font-size: 11px; }
+  .stat-l { color: var(--app-muted); font-size: 9px; letter-spacing: 1px; }
+  .stat-v { color: var(--app-text); font-size: 11px; }
 }
 
 .resbar {
@@ -141,9 +141,9 @@ ion-content::part(scroll) {
   align-items: center;
   gap: 4px;
   padding: 6px 10px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--app-border);
 
-  .res-label { color: #444; font-size: 9px; letter-spacing: 1px; margin-right: 4px; }
+  .res-label { color: var(--app-muted); font-size: 9px; letter-spacing: 1px; margin-right: 4px; }
 }
 
 .symbolbar {
@@ -152,7 +152,7 @@ ion-content::part(scroll) {
   gap: 8px;
   flex-wrap: wrap;
   padding: 6px 10px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--app-border);
 }
 
 .watchlistbar {
@@ -161,13 +161,13 @@ ion-content::part(scroll) {
   gap: 6px;
   flex-wrap: wrap;
   padding: 6px 10px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--app-border);
 }
 
 .watch-chip {
-  background: #0a1119;
-  border: 1px solid #2a3442;
-  color: #9db0ca;
+  background: color-mix(in srgb, var(--app-surface) 75%, #000 25%);
+  border: 1px solid var(--app-border);
+  color: color-mix(in srgb, var(--app-text) 70%, #7f95b8 30%);
   font-family: 'Courier New', Courier, monospace;
   font-size: 10px;
   letter-spacing: 0.6px;
@@ -175,14 +175,14 @@ ion-content::part(scroll) {
   cursor: pointer;
 
   &:hover {
-    border-color: #ff9f1a;
-    color: #ff9f1a;
+    border-color: var(--app-accent);
+    color: var(--app-accent);
   }
 
   &.active {
-    border-color: #ff9f1a;
-    color: #ff9f1a;
-    background: #181103;
+    border-color: var(--app-accent);
+    color: var(--app-accent);
+    background: color-mix(in srgb, var(--app-accent) 18%, var(--app-surface) 82%);
   }
 }
 
@@ -191,9 +191,9 @@ ion-content::part(scroll) {
 }
 
 .symbol-input {
-  background: #050505;
-  border: 1px solid #222;
-  color: #ccc;
+  background: color-mix(in srgb, var(--app-bg) 88%, #000 12%);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
   font-family: 'Courier New', Courier, monospace;
   font-size: 10px;
   letter-spacing: 1px;
@@ -209,8 +209,8 @@ ion-content::part(scroll) {
   width: 280px;
   max-height: 220px;
   overflow-y: auto;
-  border: 1px solid #2a2a2a;
-  background: #060606;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
   z-index: 25;
 }
 
@@ -219,10 +219,10 @@ ion-content::part(scroll) {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  background: #060606;
+  background: var(--app-surface);
   border: 0;
-  border-bottom: 1px solid #121212;
-  color: #ccc;
+  border-bottom: 1px solid color-mix(in srgb, var(--app-border) 55%, #000 45%);
+  color: var(--app-text);
   padding: 6px 8px;
   cursor: pointer;
   font-family: 'Courier New', Courier, monospace;
@@ -230,22 +230,22 @@ ion-content::part(scroll) {
   text-align: left;
 
   &:hover {
-    background: #101010;
-    color: #ff9900;
+    background: var(--app-surface-2);
+    color: var(--app-accent);
   }
 }
 
 .ssym {
   font-weight: 700;
-  color: #ff9900;
+  color: var(--app-accent);
 }
 
 .sname {
-  color: #8a8a8a;
+  color: var(--app-muted);
 }
 
 .symbol-active {
-  color: #ff9900;
+  color: var(--app-accent);
   font-size: 10px;
   letter-spacing: 1px;
 }

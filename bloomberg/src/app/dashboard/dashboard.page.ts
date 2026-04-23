@@ -16,7 +16,7 @@ type MarketItem = { symbol: string; price: number; weekPct: number };
 type SectorSlice = { sector: string; value: number; pct: number };
 type HistoryPoint = { label: string; value: number };
 type HeatTile = { symbol: string; change: number; size: 'lg' | 'md' | 'sm' };
-type NewsItem = { source: string; title: string };
+type NewsItem = { source: string; title: string; url?: string };
 type RiskProfile = 'conservative' | 'balanced' | 'aggressive';
 
 @Component({
@@ -525,14 +525,15 @@ export class DashboardPage implements OnInit, OnDestroy {
   }
 
   private loadNews(): void {
-    const url = 'https://hn.algolia.com/api/v1/search?query=stock%20market&tags=story';
+    const url = `${environment.newsApiBaseUrl}/news?q=${encodeURIComponent('stock market OR equities OR federal reserve')}&language=en&pageSize=8`;
     this.http.get<any>(url).pipe(
       map(response => {
-        const hits = response?.hits ?? [];
-        return hits
+        const rows = Array.isArray(response?.rows) ? response.rows : [];
+        return rows
           .map((h: any) => ({
-            source: String(h?.author || 'NEWS').toUpperCase(),
-            title: String(h?.title || h?.story_title || '').trim()
+            source: String(h?.source || 'NEWS').toUpperCase(),
+            title: String(h?.title || '').trim(),
+            url: String(h?.url || '').trim() || undefined
           }))
           .filter((n: NewsItem) => !!n.title)
           .slice(0, 8);
