@@ -438,8 +438,8 @@ export class HomePage implements OnInit, OnDestroy {
 
   private async readCached(symbol: string, range: string, interval: string): Promise<any> {
     const key = `chart:${symbol}:${range}:${interval}`;
-    const cached = await this.financeService.getStorageValue(key, null);
-    if (!cached?.savedAt || !cached?.data) return null;
+    const cached = await this.financeService.getStorageValue<any>(key, null);
+    if (!cached || !cached.savedAt || !cached.data) return null;
     const ttl = range === '1d' || range === '5d' ? 120000 : 600000;
     if (Date.now() - Number(cached.savedAt) > ttl) return null;
     return cached.data;
