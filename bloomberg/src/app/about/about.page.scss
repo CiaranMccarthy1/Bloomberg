@@ -1,14 +1,15 @@
 ion-content {
-  --background: #000;
+  --background: var(--app-bg);
 }
 
 .panel {
   max-width: 680px;
   margin: 16px auto;
-  border: 1px solid #1a1a1a;
-  background: #000;
-  color: #ccc;
+  border: 1px solid #1a2433;
+  background: color-mix(in srgb, var(--app-bg) 92%, #101722 8%);
+  color: var(--app-text);
   font-family: 'Courier New', Courier, monospace;
+  font-size: calc(11px * var(--app-font-multiplier));
   padding: 12px;
 }
 
@@ -32,13 +33,13 @@ ion-content {
 }
 
 .k {
-  color: #666;
+  color: #8e9aaa;
   font-size: 10px;
   letter-spacing: 1px;
 }
 
 .v {
-  color: #ddd;
+  color: var(--app-text);
   font-size: 12px;
 }
 

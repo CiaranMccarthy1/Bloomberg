@@ -137,6 +137,11 @@ export class SettingsPage implements OnInit {
     this.status = 'Settings saved. Trading intelligence and dashboard coach updated.';
   }
 
+  onDisplaySettingsChange(): void {
+    this.applyDisplaySettings();
+    this.status = 'Preview applied (save to persist)';
+  }
+
   async resetPortfolio(): Promise<void> {
     await this.storage.set('simCash', 100000);
     await this.storage.set('simPositions', {});

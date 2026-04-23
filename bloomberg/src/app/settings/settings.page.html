@@ -37,7 +37,7 @@
         </label>
 
         <label>THEME
-          <select [(ngModel)]="theme">
+          <select [(ngModel)]="theme" (ngModelChange)="onDisplaySettingsChange()">
             <option value="sleek-dark">Sleek Dark</option>
             <option value="market-dawn">Market Dawn</option>
             <option value="high-contrast">High Contrast</option>
@@ -45,7 +45,7 @@
         </label>
 
         <label>FONT SIZE
-          <select [(ngModel)]="fontSize">
+          <select [(ngModel)]="fontSize" (ngModelChange)="onDisplaySettingsChange()">
             <option value="small">Small</option>
             <option value="medium">Medium</option>
             <option value="large">Large</option>
