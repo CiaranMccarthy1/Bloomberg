@@ -1,15 +1,8 @@
 {
-<<<<<<< HEAD
   "name": "S&P 500 Terminal",
   "short_name": "SP500",
   "theme_color": "#121212",
   "background_color": "#121212",
-=======
-  "name": "app",
-  "short_name": "app",
-  "theme_color": "#1976d2",
-  "background_color": "#fafafa",
->>>>>>> be6d4c8bc6d664e7c1d0319d44056fdc2a2694bb
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
